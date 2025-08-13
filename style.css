@@ -1,0 +1,50 @@
+/* Map and responsive tweaks */
+#map {
+	height: 280px;
+}
+
+@media (min-width: 576px) {
+	#map {
+		height: 320px;
+	}
+}
+
+@media (min-width: 992px) {
+	#map {
+		height: 420px;
+	}
+}
+
+/* Image preview */
+#photoPreviewWrap img.object-fit-cover {
+	object-fit: cover;
+}
+
+.leaflet-container {
+	font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
+}
+
+/* Incident card styles */
+.incident-card {
+	border-left: 4px solid var(--bs-secondary);
+}
+.incident-card.sev-Low {
+	border-left-color: #0d6efd;
+}
+.incident-card.sev-Moderate {
+	border-left-color: #198754;
+}
+.incident-card.sev-High {
+	border-left-color: #fd7e14;
+}
+.incident-card.sev-Critical {
+	border-left-color: #dc3545;
+}
+
+.status-badge {
+	min-width: 88px;
+	text-align: center;
+}
+
+
+
