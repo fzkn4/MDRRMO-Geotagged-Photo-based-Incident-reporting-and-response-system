@@ -23,9 +23,10 @@
   const STORAGE_KEY = "mdrrmo_incidents_v1";
   const incidents = loadIncidents();
 
-  let map, mapMarker;
+  let locationMap, locationMarker;
+
   initClock();
-  initMap();
+  initLocationMap();
   renderList();
 
   function initClock() {
@@ -38,17 +39,18 @@
     clockBadge.textContent = now.toLocaleString();
   }
 
-  function initMap() {
-    map = L.map("map");
+  function initLocationMap() {
+    locationMap = L.map("locationMap");
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 19,
+      maxZoom: 18,
       attribution: "© OpenStreetMap",
-    }).addTo(map);
+    }).addTo(locationMap);
 
-    // Default to Philippines center if no location yet
-    map.setView([12.8797, 121.774], 5);
+    // Default to Philippines center
+    locationMap.setView([12.8797, 121.774], 5);
 
-    map.on("click", (e) => {
+    // Add click event to set location
+    locationMap.on("click", (e) => {
       setLocation(e.latlng.lat, e.latlng.lng, "map-click");
     });
   }
@@ -57,16 +59,18 @@
     latEl.value = Number(lat).toFixed(6);
     lngEl.value = Number(lng).toFixed(6);
     mapNote.textContent = `Location set ${source ? "via " + source : ""}`;
-    if (!map) return;
-    map.setView([lat, lng], 16);
-    if (!mapMarker) {
-      mapMarker = L.marker([lat, lng], { draggable: true }).addTo(map);
-      mapMarker.on("dragend", () => {
-        const pos = mapMarker.getLatLng();
-        setLocation(pos.lat, pos.lng, "pin-drag");
-      });
-    } else {
-      mapMarker.setLatLng([lat, lng]);
+
+    // Update map view and marker
+    if (locationMap) {
+      locationMap.setView([lat, lng], 14);
+
+      // Remove existing marker if any
+      if (locationMarker) {
+        locationMap.removeLayer(locationMarker);
+      }
+
+      // Add new marker
+      locationMarker = L.marker([lat, lng]).addTo(locationMap);
     }
   }
 
@@ -74,9 +78,11 @@
     latEl.value = "";
     lngEl.value = "";
     mapNote.textContent = "No location yet";
-    if (map && mapMarker) {
-      map.removeLayer(mapMarker);
-      mapMarker = null;
+
+    // Clear map marker
+    if (locationMarker && locationMap) {
+      locationMap.removeLayer(locationMarker);
+      locationMarker = null;
     }
   }
 
@@ -298,6 +304,7 @@
 						</div>
 					</div>
 				</div>
+			</div>
 		`;
   }
 

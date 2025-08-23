@@ -31,13 +31,7 @@ if (isset($_GET['logout'])) {
       href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"
     />
 
-    <!-- Leaflet CSS -->
-    <link
-      rel="stylesheet"
-      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-      crossorigin=""
-    />
+
 
     <link rel="stylesheet" href="styles/dashboard.css" />
   </head>
@@ -76,7 +70,7 @@ if (isset($_GET['logout'])) {
             <div class="nav-badge warning" id="incidentCount">0</div>
           </a>
           
-          <a href="#" class="nav-item">
+          <a href="map-view.php" class="nav-item">
             <div class="nav-icon">
               <i class="bi bi-geo-alt"></i>
             </div>
@@ -364,7 +358,12 @@ if (isset($_GET['logout'])) {
                       </div>
                     </div>
                     <div id="locationNote" class="small text-muted mb-2">No location yet</div>
-                    <div id="map" class="rounded"></div>
+                    
+                    <!-- Location Map -->
+                    <div class="mt-2">
+                      <div id="locationMap" class="rounded border" style="height: 200px; width: 100%;"></div>
+                      <div class="form-text small mt-1">Click on the map to set location or use the buttons above</div>
+                    </div>
                   </div>
 
                   <div class="col-12 d-grid gap-2 mt-2">
@@ -396,12 +395,22 @@ if (isset($_GET['logout'])) {
       crossorigin="anonymous"
     ></script>
 
+    <!-- Leaflet CSS -->
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+      crossorigin=""
+    />
+
     <!-- Leaflet JS -->
     <script
       src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
       integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
       crossorigin=""
     ></script>
+
+
 
     <!-- EXIF reader -->
     <script src="https://cdn.jsdelivr.net/npm/exif-js@2.3.0/exif.min.js"></script>
