@@ -1,0 +1,42 @@
+version: "3.8"
+
+services:
+  geotagged-app:
+    build: .
+    ports:
+      - "8080:80"
+    volumes:
+      # Mount the current directory for development
+      - .:/var/www/html
+      # Mount users.json separately to persist user data
+      - ./users.json:/var/www/html/users.json
+    environment:
+      - APACHE_DOCUMENT_ROOT=/var/www/html
+    restart: unless-stopped
+    container_name: geotagged-incident-reporting
+
+  # Optional: Add phpMyAdmin if you want to add database later
+  # phpmyadmin:
+  #   image: phpmyadmin/phpmyadmin
+  #   ports:
+  #     - "8081:80"
+  #   environment:
+  #     - PMA_HOST=db
+  #     - PMA_PORT=3306
+  #   depends_on:
+  #     - db
+  #   restart: unless-stopped
+
+  # Optional: Add MySQL/MariaDB if you want to add database later
+  # db:
+  #   image: mysql:8.0
+  #   environment:
+  #     MYSQL_ROOT_PASSWORD: rootpassword
+  #     MYSQL_DATABASE: geotagged
+  #     MYSQL_USER: geotagged_user
+  #     MYSQL_PASSWORD: geotagged_password
+  #   volumes:
+  #     - mysql_data:/var/lib/mysql
+  #   restart: unless-stopped
+# volumes:
+#   mysql_data:
