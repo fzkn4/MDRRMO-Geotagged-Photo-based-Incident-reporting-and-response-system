@@ -12,6 +12,7 @@ RUN docker-php-ext-install zip
 
 # Enable Apache modules
 RUN a2enmod rewrite
+RUN a2enmod php
 
 # Set working directory
 WORKDIR /var/www/html

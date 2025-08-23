@@ -1,0 +1,8 @@
+AddType application/x-httpd-php .php
+AddHandler application/x-httpd-php .php
+
+<Files *.php>
+    SetHandler application/x-httpd-php
+</Files>
+
+DirectoryIndex index.php index.html
