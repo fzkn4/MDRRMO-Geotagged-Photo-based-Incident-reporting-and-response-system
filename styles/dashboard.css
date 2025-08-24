@@ -830,6 +830,22 @@
   aspect-ratio: 1 / 1;
 }
 
+/* Clickable image styling */
+.incident-image-clickable {
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.incident-image-clickable:hover {
+  transform: scale(1.02);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+  border-color: rgba(255, 255, 255, 1);
+}
+
+.incident-image-clickable:active {
+  transform: scale(0.98);
+}
+
 .incident-card:hover img {
   transform: scale(1.05);
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2);
@@ -969,6 +985,93 @@
 /* Ensure proper spacing between cards */
 #incidentList .incident-card:not(:last-child) {
   margin-bottom: 16px;
+}
+
+/* Image Modal Styling */
+#imageModal .modal-content {
+  border-radius: 16px;
+  border: none;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+}
+
+#imageModal .modal-header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-bottom: none;
+  padding: 20px 25px;
+}
+
+#imageModal .modal-title {
+  font-weight: 700;
+  font-size: 1.2rem;
+}
+
+#imageModal .btn-close {
+  filter: invert(1);
+  opacity: 0.8;
+  transition: all 0.3s ease;
+}
+
+#imageModal .btn-close:hover {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+#imageModal .modal-body {
+  padding: 20px;
+  background: #f8f9fa;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 70vh;
+}
+
+#imageModal .modal-body img {
+  max-width: 90%;
+  max-height: 90%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+  border: 3px solid rgba(255, 255, 255, 0.8);
+}
+
+#imageModal .modal-footer {
+  border-top: none;
+  padding: 20px 25px;
+  background: #f8f9fa;
+}
+
+#imageModal .btn {
+  border-radius: 25px;
+  font-weight: 600;
+  padding: 10px 20px;
+  transition: all 0.3s ease;
+}
+
+#imageModal .btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+#imageModal .btn-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+}
+
+#imageModal .btn-primary:hover {
+  background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+}
+
+#imageModal .btn-secondary {
+  background: #6c757d;
+  border: none;
+}
+
+#imageModal .btn-secondary:hover {
+  background: #5a6268;
 }
 
 /* Sidebar Styles */

@@ -20,6 +20,30 @@
   const clearAllBtn = $("#btnClearAll");
   const clockBadge = $("#clockBadge");
 
+  // Add image modal to the DOM
+  const modalHTML = `
+    <div id="imageModal" class="modal fade" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="imageModalLabel">Incident Photo</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body text-center">
+            <img id="modalImage" src="" alt="Incident Photo" class="img-fluid rounded">
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            <button type="button" class="btn btn-primary" id="downloadModalImage">Download</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Insert modal into the DOM
+  document.body.insertAdjacentHTML("beforeend", modalHTML);
+
   const STORAGE_KEY = "mdrrmo_incidents_v1";
   const incidents = loadIncidents();
 
@@ -257,11 +281,13 @@
     return `
 			<div class="card incident-card sev-${inc.severity} shadow-sm">
 				<div class="row g-0">
-					<div class="col-4 col-sm-3">
-						<img src="${inc.photoDataUrl}" alt="${
+														<div class="col-4 col-sm-3">
+										<img src="${inc.photoDataUrl}" alt="${
       inc.type
-    } photo" class="w-100 h-100" style="object-fit:cover;min-height:100%"/>
-					</div>
+    } photo" class="w-100 h-100 incident-image-clickable" style="object-fit:cover;min-height:100%;cursor:pointer;" data-image="${
+      inc.photoDataUrl
+    }" data-title="${inc.type} - ${inc.severity}"/>
+									</div>
 					<div class="col-8 col-sm-9">
 						<div class="card-body py-2">
 							<div class="d-flex align-items-center justify-content-between">
@@ -443,6 +469,33 @@
   }
 
   filterStatus.addEventListener("change", renderList);
+
+  // Add event listener for image clicks
+  document.addEventListener("click", (e) => {
+    if (e.target.classList.contains("incident-image-clickable")) {
+      const imageSrc = e.target.getAttribute("data-image");
+      const imageTitle = e.target.getAttribute("data-title");
+
+      // Update modal content
+      document.getElementById("modalImage").src = imageSrc;
+      document.getElementById("imageModalLabel").textContent = imageTitle;
+
+      // Show modal
+      const modal = new bootstrap.Modal(document.getElementById("imageModal"));
+      modal.show();
+    }
+  });
+
+  // Handle download button in modal
+  document
+    .getElementById("downloadModalImage")
+    .addEventListener("click", () => {
+      const imageSrc = document.getElementById("modalImage").src;
+      const a = document.createElement("a");
+      a.href = imageSrc;
+      a.download = `incident_photo_${Date.now()}.jpg`;
+      a.click();
+    });
 
   exportBtn.addEventListener("click", () => {
     const blob = new Blob([JSON.stringify(incidents, null, 2)], {
