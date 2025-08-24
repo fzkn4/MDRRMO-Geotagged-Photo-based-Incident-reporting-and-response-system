@@ -740,48 +740,106 @@
 
 /* Incident card styles */
 .incident-card {
-  border-left: 4px solid var(--bs-secondary);
+  border-left: 6px solid var(--bs-secondary);
+  position: relative;
 }
+
+.incident-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 6px;
+  height: 100%;
+  background: linear-gradient(
+    180deg,
+    var(--bs-secondary) 0%,
+    rgba(108, 117, 125, 0.7) 100%
+  );
+  border-radius: 3px 0 0 3px;
+}
+
 .incident-card.sev-Low {
   border-left-color: #0d6efd;
 }
+.incident-card.sev-Low::before {
+  background: linear-gradient(180deg, #0d6efd 0%, rgba(13, 110, 253, 0.7) 100%);
+}
+
 .incident-card.sev-Moderate {
   border-left-color: #198754;
 }
+.incident-card.sev-Moderate::before {
+  background: linear-gradient(180deg, #198754 0%, rgba(25, 135, 84, 0.7) 100%);
+}
+
 .incident-card.sev-High {
   border-left-color: #fd7e14;
 }
+.incident-card.sev-High::before {
+  background: linear-gradient(180deg, #fd7e14 0%, rgba(253, 126, 20, 0.7) 100%);
+}
+
 .incident-card.sev-Critical {
   border-left-color: #dc3545;
+}
+.incident-card.sev-Critical::before {
+  background: linear-gradient(180deg, #dc3545 0%, rgba(220, 53, 69, 0.7) 100%);
 }
 
 .status-badge {
   min-width: 88px;
   text-align: center;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-size: 0.75rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 /* Incident card styling */
 .incident-card {
-  height: 128px;
-  margin-bottom: 16px;
+  height: auto;
+  min-height: 140px;
+  margin-bottom: 20px;
   overflow: hidden;
   position: relative;
+  border-radius: 16px;
+  border: none;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+}
+
+.incident-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.12);
 }
 
 /* Incident card image styling */
 .incident-card img {
-  width: 120px;
-  height: 120px;
+  width: 160px;
+  height: 160px;
   object-fit: cover;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  border: 3px solid rgba(255, 255, 255, 0.8);
+  transition: all 0.3s ease;
+  aspect-ratio: 1 / 1;
+}
+
+.incident-card:hover img {
+  transform: scale(1.05);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.2);
 }
 
 /* Ensure consistent image container sizing */
 .incident-card .col-4,
 .incident-card .col-sm-3 {
-  width: 120px;
-  flex: 0 0 120px;
+  width: 160px;
+  flex: 0 0 160px;
 }
 
 /* Card body adjustments for fixed height */
@@ -790,7 +848,8 @@
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: 12px;
+  padding: 20px;
+  gap: 12px;
 }
 
 /* Ensure card content fits within fixed height */
@@ -812,6 +871,87 @@
   display: block;
   float: none;
   clear: both;
+}
+
+/* Enhanced button styling for incident cards */
+.incident-card .btn {
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 0.8rem;
+  padding: 6px 12px;
+  transition: all 0.3s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.incident-card .btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.incident-card .btn-group {
+  gap: 4px;
+}
+
+/* Enhanced typography for incident cards */
+.incident-card strong {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #2c3e50;
+}
+
+/* Severity badge styling */
+.severity-badge {
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  font-size: 0.75rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 2px solid transparent;
+  transition: all 0.3s ease;
+}
+
+.severity-badge.sev-low {
+  background: linear-gradient(135deg, #0d6efd, #0b5ed7);
+  color: white;
+  border-color: rgba(13, 110, 253, 0.3);
+}
+
+.severity-badge.sev-moderate {
+  background: linear-gradient(135deg, #198754, #157347);
+  color: white;
+  border-color: rgba(25, 135, 84, 0.3);
+}
+
+.severity-badge.sev-high {
+  background: linear-gradient(135deg, #fd7e14, #e8690b);
+  color: white;
+  border-color: rgba(253, 126, 20, 0.3);
+}
+
+.severity-badge.sev-critical {
+  background: linear-gradient(135deg, #dc3545, #b02a37);
+  color: white;
+  border-color: rgba(220, 53, 69, 0.3);
+}
+
+.severity-badge:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+.incident-card .small {
+  font-size: 0.85rem;
+  color: #6c757d;
+  font-weight: 500;
+}
+
+.incident-card p {
+  color: #495057;
+  line-height: 1.5;
+  margin-bottom: 0;
 }
 
 /* Location Map Styles */

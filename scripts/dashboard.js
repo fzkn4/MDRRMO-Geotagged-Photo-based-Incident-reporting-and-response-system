@@ -268,7 +268,9 @@
 								<div class="d-flex align-items-center gap-2">
 									<i class="bi ${typeToIcon(inc.type)}"></i>
 									<strong>${escapeHtml(inc.type)}</strong>
-									<span class="badge bg-light text-dark">${escapeHtml(inc.severity)}</span>
+									<span class="badge severity-badge sev-${inc.severity.toLowerCase()}">${escapeHtml(
+      inc.severity
+    )}</span>
 								</div>
 								<span class="badge ${badgeClass} status-badge">${inc.status}</span>
 							</div>
