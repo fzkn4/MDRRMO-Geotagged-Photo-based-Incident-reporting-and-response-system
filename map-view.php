@@ -50,6 +50,11 @@ if (isset($_GET['logout'])) {
     />
 
     <link rel="stylesheet" href="styles/dashboard.css" />
+    <!-- Flaticon UIcons -->
+    <link rel='stylesheet' href='https://cdn-uicons.flaticon.com/3.0.0/uicons-solid-rounded/css/uicons-solid-rounded.css'>
+    <link rel='stylesheet' href='https://cdn-uicons.flaticon.com/3.0.0/uicons-regular-rounded/css/uicons-regular-rounded.css'>
+    <link rel='stylesheet' href='https://cdn-uicons.flaticon.com/3.0.0/uicons-bold-rounded/css/uicons-bold-rounded.css'>
+    <link rel='stylesheet' href='https://cdn-uicons.flaticon.com/3.0.0/uicons-regular-straight/css/uicons-regular-straight.css'>
   </head>
   <body>
     <!-- Sidebar Overlay for Mobile -->
@@ -73,14 +78,14 @@ if (isset($_GET['logout'])) {
           
           <a href="index.php" class="nav-item">
             <div class="nav-icon">
-              <i class="bi bi-speedometer2"></i>
+              <i data-filled="fi fi-sr-apps" data-unfilled="fi fi-rr-apps"></i>
             </div>
             <div class="nav-text">Dashboard</div>
           </a>
           
           <a href="#" class="nav-item" id="incidentsLink">
             <div class="nav-icon">
-              <i class="bi bi-flag"></i>
+              <i data-filled="fi fi-sr-light-emergency-on" data-unfilled="fi fi-rr-light-emergency-on"></i>
             </div>
             <div class="nav-text">Incidents</div>
             <div class="nav-badge warning" id="incidentCount">0</div>
@@ -88,7 +93,7 @@ if (isset($_GET['logout'])) {
           
           <a href="map-view.php" class="nav-item active">
             <div class="nav-icon">
-              <i class="bi bi-geo-alt"></i>
+              <i data-filled="fi fi-sr-map-marker" data-unfilled="fi fi-rr-map-marker"></i>
             </div>
             <div class="nav-text">Map View</div>
           </a>
@@ -96,7 +101,7 @@ if (isset($_GET['logout'])) {
           <?php if (getUserRole() === 'admin'): ?>
           <a href="users.php" class="nav-item">
             <div class="nav-icon">
-              <i class="bi bi-people"></i>
+              <i data-filled="fi fi-sr-users" data-unfilled="fi fi-br-users"></i>
             </div>
             <div class="nav-text">Users</div>
             <div class="nav-badge primary" id="userCount">0</div>
@@ -104,17 +109,11 @@ if (isset($_GET['logout'])) {
           
           <a href="#" class="nav-item">
             <div class="nav-icon">
-              <i class="bi bi-graph-up"></i>
+              <i data-filled="fi fi-sr-rectangle-list" data-unfilled="fi fi-br-rectangle-list"></i>
             </div>
             <div class="nav-text">Reports</div>
           </a>
           
-          <a href="#" class="nav-item">
-            <div class="nav-icon">
-              <i class="bi bi-gear"></i>
-            </div>
-            <div class="nav-text">Settings</div>
-          </a>
           <?php endif; ?>
         </div>
       </div>
@@ -271,5 +270,17 @@ if (isset($_GET['logout'])) {
     ></script>
 
     <script src="scripts/map-view.js"></script>
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.sidebar .nav-item').forEach(function (item) {
+          const icon = item.querySelector('.nav-icon i');
+          if (!icon) return;
+          const filled = icon.getAttribute('data-filled');
+          const unfilled = icon.getAttribute('data-unfilled');
+          if (!filled || !unfilled) return;
+          icon.className = item.classList.contains('active') ? filled : unfilled;
+        });
+      });
+    </script>
   </body>
 </html>
