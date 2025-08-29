@@ -246,10 +246,10 @@ $users = getAllUsers();
                               <?php echo ucfirst($user['role']); ?>
                             </span>
                           </td>
-                          <td><?php echo htmlspecialchars($user['organization']); ?></td>
+                          <td><?php echo htmlspecialchars($user['organization'] ?? ''); ?></td>
                           <td>
-                            <span class="badge bg-<?php echo $user['status'] === 'active' ? 'success' : 'secondary'; ?>">
-                              <?php echo ucfirst($user['status']); ?>
+                            <span class="badge bg-<?php echo ($user['status'] ?? 'active') === 'active' ? 'success' : 'secondary'; ?>">
+                              <?php echo ucfirst($user['status'] ?? 'active'); ?>
                             </span>
                           </td>
                           <td>
@@ -312,7 +312,7 @@ $users = getAllUsers();
                 <div class="mb-3">
                   <label class="form-label">Organization</label>
                   <input type="text" class="form-control" name="organization" 
-                         value="<?php echo htmlspecialchars($user['organization']); ?>" required>
+                         value="<?php echo htmlspecialchars($user['organization'] ?? ''); ?>" required>
                 </div>
                 
                 <div class="mb-3">
@@ -324,8 +324,8 @@ $users = getAllUsers();
                 <div class="mb-3">
                   <label class="form-label">Status</label>
                   <select class="form-select" name="status">
-                    <option value="active" <?php echo $user['status'] === 'active' ? 'selected' : ''; ?>>Active</option>
-                    <option value="inactive" <?php echo $user['status'] === 'inactive' ? 'selected' : ''; ?>>Inactive</option>
+                    <option value="active" <?php echo ($user['status'] ?? 'active') === 'active' ? 'selected' : ''; ?>>Active</option>
+                    <option value="inactive" <?php echo ($user['status'] ?? 'active') === 'inactive' ? 'selected' : ''; ?>>Inactive</option>
                   </select>
                 </div>
               </div>
