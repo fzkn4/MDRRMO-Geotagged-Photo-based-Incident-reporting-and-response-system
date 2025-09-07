@@ -90,6 +90,3 @@ The application includes a comprehensive authentication system with user registr
 - File API support for photo uploads
 - LocalStorage support for data persistence
 
-## License
-
-This is a demo application for educational purposes.
