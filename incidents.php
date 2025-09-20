@@ -91,7 +91,7 @@ if (isset($_GET['logout'])) {
             <div class="nav-badge primary" id="userCount">0</div>
           </a>
           
-          <a href="#" class="nav-item">
+          <a href="#" class="nav-item disabled" style="opacity: 0.5; cursor: not-allowed;" title="Coming Soon">
             <div class="nav-icon">
               <i data-filled="fi fi-sr-rectangle-list" data-unfilled="fi fi-br-rectangle-list"></i>
             </div>

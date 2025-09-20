@@ -92,7 +92,7 @@ $users = getAllUsers();
             <div class="nav-text">Dashboard</div>
           </a>
           
-          <a href="#" class="nav-item">
+          <a href="incidents.php" class="nav-item">
             <div class="nav-icon">
               <i data-filled="fi fi-sr-light-emergency-on" data-unfilled="fi fi-rr-light-emergency-on"></i>
             </div>
@@ -100,7 +100,7 @@ $users = getAllUsers();
             <div class="nav-badge warning" id="incidentCount">0</div>
           </a>
           
-          <a href="#" class="nav-item">
+          <a href="map-view.php" class="nav-item">
             <div class="nav-icon">
               <i data-filled="fi fi-sr-map-marker" data-unfilled="fi fi-rr-map-marker"></i>
             </div>
@@ -115,7 +115,7 @@ $users = getAllUsers();
             <div class="nav-badge primary" id="userCount">0</div>
           </a>
           
-          <a href="#" class="nav-item">
+          <a href="#" class="nav-item disabled" style="opacity: 0.5; cursor: not-allowed;" title="Coming Soon">
             <div class="nav-icon">
               <i data-filled="fi fi-sr-rectangle-list" data-unfilled="fi fi-br-rectangle-list"></i>
             </div>
