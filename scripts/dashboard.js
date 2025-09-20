@@ -535,6 +535,9 @@
       form.classList.remove("was-validated");
       renderList();
       window.scrollTo({ top: 0, behavior: "smooth" });
+
+      // Dispatch custom event for real-time updates
+      window.dispatchEvent(new CustomEvent("incidentAdded"));
     } catch (err) {
       alert(err.message || "Failed to add incident");
     }

@@ -15,7 +15,7 @@ if (isset($_GET['logout'])) {
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>MDRRMO | Geotagged Incident Reporting</title>
+    <title>Incidents | MDRRMO Incident Reporting</title>
 
     <!-- Bootstrap CSS -->
     <link
@@ -31,9 +31,9 @@ if (isset($_GET['logout'])) {
       href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"
     />
 
-
-
-    <link rel="stylesheet" href="styles/dashboard.css" />
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="styles/incidents.css" />
+    
     <!-- Flaticon UIcons -->
     <link rel='stylesheet' href='https://cdn-uicons.flaticon.com/3.0.0/uicons-solid-rounded/css/uicons-solid-rounded.css'>
     <link rel='stylesheet' href='https://cdn-uicons.flaticon.com/3.0.0/uicons-regular-rounded/css/uicons-regular-rounded.css'>
@@ -60,14 +60,14 @@ if (isset($_GET['logout'])) {
         <div class="nav-section">
           <div class="nav-section-title" id="navTitle">Navigation</div>
           
-          <a href="index.php" class="nav-item active">
+          <a href="index.php" class="nav-item">
             <div class="nav-icon">
               <i data-filled="fi fi-sr-apps" data-unfilled="fi fi-rr-apps"></i>
             </div>
             <div class="nav-text">Dashboard</div>
           </a>
           
-          <a href="incidents.php" class="nav-item" id="incidentsLink">
+          <a href="incidents.php" class="nav-item active">
             <div class="nav-icon">
               <i data-filled="fi fi-sr-light-emergency-on" data-unfilled="fi fi-rr-light-emergency-on"></i>
             </div>
@@ -101,8 +101,6 @@ if (isset($_GET['logout'])) {
           <?php endif; ?>
         </div>
       </div>
-      
-
     </div>
     
     <!-- Main Content -->
@@ -134,24 +132,22 @@ if (isset($_GET['logout'])) {
         </div>
       </nav>
 
-          <main class="container-fluid py-4">
+      <main class="container-fluid py-4">
         <!-- Page Header -->
         <div class="row mb-4">
           <div class="col-12">
             <div class="d-flex justify-content-between align-items-center">
               <div>
-                <h1 class="h3 mb-1">Dashboard</h1>
-                <p class="text-muted mb-0">Welcome back, <?php echo htmlspecialchars(getCurrentUser()); ?>!</p>
+                <h1 class="h3 mb-1">All Incidents</h1>
+                <p class="text-muted mb-0">Comprehensive view of all reported incidents</p>
               </div>
               <div class="d-flex gap-2">
                 <button class="btn btn-outline-secondary" id="btnRefresh">
                   <i class="bi bi-arrow-clockwise"></i> Refresh
                 </button>
-                <?php if (getUserRole() === 'admin'): ?>
-                  <a href="users.php" class="btn btn-primary">
-                    <i class="bi bi-people"></i> Manage Users
-                  </a>
-                <?php endif; ?>
+                <a href="index.php" class="btn btn-primary">
+                  <i class="bi bi-plus-circle"></i> Add New Incident
+                </a>
               </div>
             </div>
           </div>
@@ -160,7 +156,7 @@ if (isset($_GET['logout'])) {
         <!-- Stats Cards -->
         <div class="row mb-4">
           <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card border-0 shadow-sm">
+            <div class="card border-0 shadow-sm stats-card">
               <div class="card-body">
                 <div class="d-flex align-items-center">
                   <div class="flex-shrink-0">
@@ -178,7 +174,7 @@ if (isset($_GET['logout'])) {
           </div>
           
           <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card border-0 shadow-sm">
+            <div class="card border-0 shadow-sm stats-card">
               <div class="card-body">
                 <div class="d-flex align-items-center">
                   <div class="flex-shrink-0">
@@ -196,7 +192,7 @@ if (isset($_GET['logout'])) {
           </div>
           
           <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card border-0 shadow-sm">
+            <div class="card border-0 shadow-sm stats-card">
               <div class="card-body">
                 <div class="d-flex align-items-center">
                   <div class="flex-shrink-0">
@@ -213,44 +209,40 @@ if (isset($_GET['logout'])) {
             </div>
           </div>
           
-          <?php if (getUserRole() === 'admin'): ?>
           <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card border-0 shadow-sm">
+            <div class="card border-0 shadow-sm stats-card">
               <div class="card-body">
                 <div class="d-flex align-items-center">
                   <div class="flex-shrink-0">
                     <div class="bg-info bg-opacity-10 p-3 rounded">
-                      <i class="bi bi-people text-info fs-4"></i>
+                      <i class="bi bi-truck text-info fs-4"></i>
                     </div>
                   </div>
                   <div class="flex-grow-1 ms-3">
-                    <h6 class="card-title text-muted mb-1">Active Users</h6>
-                    <h4 class="mb-0" id="activeUsers">0</h4>
+                    <h6 class="card-title text-muted mb-1">Dispatched</h6>
+                    <h4 class="mb-0" id="dispatchedIncidents">0</h4>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-          <?php endif; ?>
         </div>
 
-        <div class="row g-4">
-          <!-- Incidents List -->
-          <div class="col-12 col-lg-8">
+        <!-- Filters and Controls -->
+        <div class="row mb-4">
+          <div class="col-12">
             <div class="card border-0 shadow-sm">
               <div class="card-header bg-white border-0">
                 <div class="d-flex justify-content-between align-items-center">
-                  <h5 class="mb-0">Recent Incidents</h5>
+                  <h5 class="mb-0">
+                    <i class="bi bi-funnel me-2"></i>Filters & Controls
+                  </h5>
                   <div class="d-flex gap-2">
-                    <select id="filterStatus" class="form-select form-select-sm" style="width: 150px">
-                      <option value="All" selected>All statuses</option>
-                      <option value="New">New</option>
-                      <option value="Dispatched">Dispatched</option>
-                      <option value="Resolved">Resolved</option>
-                      <option value="Cancelled">Cancelled</option>
-                    </select>
+                    <button class="btn btn-sm btn-outline-secondary" id="btnClearFilters">
+                      <i class="bi bi-x-circle"></i> Clear Filters
+                    </button>
                     <button class="btn btn-sm btn-outline-success" id="btnExportAll">
-                      <i class="bi bi-download"></i> Export
+                      <i class="bi bi-download"></i> Export All
                     </button>
                     <button class="btn btn-sm btn-outline-danger" id="btnClearAll">
                       <i class="bi bi-trash"></i> Clear All
@@ -259,29 +251,35 @@ if (isset($_GET['logout'])) {
                 </div>
               </div>
               <div class="card-body">
-                <div id="incidentList" class="d-grid gap-3"></div>
-              </div>
-            </div>
-          </div>
+                <div class="row g-3">
+                  <!-- Search -->
+                  <div class="col-md-4">
+                    <label for="searchInput" class="form-label">Search</label>
+                    <div class="input-group">
+                      <span class="input-group-text">
+                        <i class="bi bi-search"></i>
+                      </span>
+                      <input type="text" class="form-control" id="searchInput" placeholder="Search incidents...">
+                    </div>
+                  </div>
 
-                  <!-- New Incident Form -->
-          <div class="col-12 col-lg-4">
-            <div class="card border-0 shadow-sm">
-              <div class="card-header bg-white border-0">
-                <div class="d-flex align-items-center justify-content-between">
-                  <h5 class="mb-0 d-flex align-items-center gap-2">
-                    <i class="bi bi-plus-circle text-primary"></i> New Incident
-                  </h5>
-                  <span class="badge bg-secondary" id="clockBadge">--:--</span>
-                </div>
-              </div>
-            <div class="card-body">
-              <form id="incidentForm" class="needs-validation" novalidate>
-                <div class="row g-2">
-                  <div class="col-12 col-md-6">
-                    <label for="incidentType" class="form-label">Type</label>
-                    <select id="incidentType" class="form-select" required>
-                      <option value="" selected disabled>Choose...</option>
+                  <!-- Status Filter -->
+                  <div class="col-md-2">
+                    <label for="filterStatus" class="form-label">Status</label>
+                    <select id="filterStatus" class="form-select">
+                      <option value="All">All Statuses</option>
+                      <option value="New">New</option>
+                      <option value="Dispatched">Dispatched</option>
+                      <option value="Resolved">Resolved</option>
+                      <option value="Cancelled">Cancelled</option>
+                    </select>
+                  </div>
+
+                  <!-- Type Filter -->
+                  <div class="col-md-2">
+                    <label for="filterType" class="form-label">Type</label>
+                    <select id="filterType" class="form-select">
+                      <option value="All">All Types</option>
                       <option value="Fire">Fire</option>
                       <option value="Flood">Flood</option>
                       <option value="Road Accident">Road Accident</option>
@@ -291,101 +289,121 @@ if (isset($_GET['logout'])) {
                       <option value="Power Outage">Power Outage</option>
                       <option value="Other">Other</option>
                     </select>
-                    <div class="invalid-feedback">Please select a type.</div>
                   </div>
-                  <div class="col-12 col-md-6">
-                    <label for="severity" class="form-label">Severity</label>
-                    <select id="severity" class="form-select" required>
-                      <option value="" selected disabled>Choose...</option>
+
+                  <!-- Severity Filter -->
+                  <div class="col-md-2">
+                    <label for="filterSeverity" class="form-label">Severity</label>
+                    <select id="filterSeverity" class="form-select">
+                      <option value="All">All Severities</option>
                       <option value="Low">Low</option>
                       <option value="Moderate">Moderate</option>
                       <option value="High">High</option>
                       <option value="Critical">Critical</option>
                     </select>
-                    <div class="invalid-feedback">Please select severity.</div>
-                  </div>
-                  <div class="col-12">
-                    <label for="description" class="form-label">Description</label>
-                    <textarea id="description" class="form-control" rows="3" placeholder="Brief details (what/where/obstructions/injuries)" required></textarea>
-                    <div class="invalid-feedback">Please enter a description.</div>
-                  </div>
-                  <div class="col-12">
-                    <label class="form-label d-flex align-items-center gap-2"
-                      ><i class="bi bi-camera"></i> Photo (geotag preferred)</label
-                    >
-                    <input
-                      id="photo"
-                      type="file"
-                      class="form-control"
-                      accept="image/*"
-                      capture="environment"
-                      required
-                    />
-                    <div class="invalid-feedback">Photo is required.</div>
-                    <div class="form-text" id="photoMeta">Awaiting image...</div>
-                    <div class="ratio ratio-16x9 mt-2 border rounded overflow-hidden bg-body" id="photoPreviewWrap">
-                      <img id="photoPreview" alt="Preview" class="object-fit-cover w-100 h-100 d-none" />
-                      <div class="d-flex align-items-center justify-content-center text-muted" id="photoPlaceholder">
-                        <div class="text-center small">
-                          <i class="bi bi-image fs-3 d-block mb-1"></i>
-                          Photo preview
-                        </div>
-                      </div>
-                    </div>
                   </div>
 
-                  <div class="col-12">
-                    <div class="d-flex align-items-center justify-content-between mb-1">
-                      <label class="form-label mb-0 d-flex align-items-center gap-2"
-                        ><i class="bi bi-geo-alt"></i> Location</label
-                      >
-                      <div class="btn-group btn-group-sm" role="group">
-                        <button type="button" id="btnUseMyLocation" class="btn btn-outline-primary">
-                          <i class="bi bi-crosshair"></i> Use my location
-                        </button>
-                        <button type="button" id="btnClearLocation" class="btn btn-outline-secondary">
-                          <i class="bi bi-x"></i>
-                        </button>
-                      </div>
-                    </div>
-                    <div class="row g-2 align-items-center mb-2">
-                      <div class="col-6">
-                        <input id="lat" class="form-control" placeholder="Latitude" readonly />
-                      </div>
-                      <div class="col-6">
-                        <input id="lng" class="form-control" placeholder="Longitude" readonly />
-                      </div>
-                    </div>
-                    <div id="locationNote" class="small text-muted mb-2">No location yet</div>
-                    
-                    <!-- Location Map -->
-                    <div class="mt-2">
-                      <div id="locationMap" class="rounded border" style="height: 200px; width: 100%;"></div>
-                      <div class="form-text small mt-1">Click on the map to set location or use the buttons above</div>
-                    </div>
-                  </div>
-
-                  <div class="col-12 d-grid gap-2 mt-2">
-                    <button class="btn btn-danger" id="btnAddIncident" type="submit">
-                      <i class="bi bi-plus-circle"></i> Add Incident
-                    </button>
-                    <button class="btn btn-outline-secondary" id="btnResetForm" type="button">
-                      <i class="bi bi-arrow-counterclockwise"></i> Reset
-                    </button>
+                  <!-- Sort By -->
+                  <div class="col-md-2">
+                    <label for="sortBy" class="form-label">Sort By</label>
+                    <select id="sortBy" class="form-select">
+                      <option value="newest">Newest First</option>
+                      <option value="oldest">Oldest First</option>
+                      <option value="severity">Severity</option>
+                      <option value="status">Status</option>
+                      <option value="type">Type</option>
+                    </select>
                   </div>
                 </div>
-              </form>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    </main>
 
-    <footer class="container pb-4 small text-center text-muted">
-      <span class="d-inline-flex align-items-center gap-1">
-        <i class="bi bi-info-circle"></i> Local-only demo. No database. Data stored in your browser.
-      </span>
-    </footer>
+        <!-- Incidents List -->
+        <div class="row">
+          <div class="col-12">
+            <div class="card border-0 shadow-sm">
+              <div class="card-header bg-white border-0">
+                <div class="d-flex justify-content-between align-items-center">
+                  <h5 class="mb-0">
+                    <i class="bi bi-list-ul me-2"></i>Incidents List
+                    <span class="badge bg-secondary ms-2" id="incidentCountBadge">0</span>
+                  </h5>
+                  <div class="d-flex align-items-center gap-3">
+                    <div class="form-check form-switch">
+                      <input class="form-check-input" type="checkbox" id="bulkSelectMode">
+                      <label class="form-check-label" for="bulkSelectMode">
+                        Bulk Select
+                      </label>
+                    </div>
+                    <div class="btn-group" role="group" id="bulkActions" style="display: none;">
+                      <button class="btn btn-sm btn-outline-primary" id="btnBulkDispatch">
+                        <i class="bi bi-truck"></i> Dispatch Selected
+                      </button>
+                      <button class="btn btn-sm btn-outline-success" id="btnBulkResolve">
+                        <i class="bi bi-check2-circle"></i> Resolve Selected
+                      </button>
+                      <button class="btn btn-sm btn-outline-danger" id="btnBulkDelete">
+                        <i class="bi bi-trash"></i> Delete Selected
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="card-body p-0">
+                <!-- Loading State -->
+                <div id="loadingState" class="text-center py-5">
+                  <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                  </div>
+                  <p class="mt-2 text-muted">Loading incidents...</p>
+                </div>
+
+                <!-- Empty State -->
+                <div id="emptyState" class="text-center py-5" style="display: none;">
+                  <i class="bi bi-inbox display-1 text-muted"></i>
+                  <h5 class="mt-3">No incidents found</h5>
+                  <p class="text-muted">Try adjusting your filters or add a new incident.</p>
+                  <a href="index.php" class="btn btn-primary">
+                    <i class="bi bi-plus-circle"></i> Add New Incident
+                  </a>
+                </div>
+
+                <!-- Incidents Grid -->
+                <div id="incidentsGrid" class="incidents-grid"></div>
+
+                <!-- Pagination -->
+                <nav aria-label="Incidents pagination" class="p-3" id="paginationContainer" style="display: none;">
+                  <ul class="pagination justify-content-center mb-0" id="pagination">
+                    <!-- Pagination items will be generated by JavaScript -->
+                  </ul>
+                </nav>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <!-- Image Modal -->
+    <div id="imageModal" class="modal fade" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="imageModalLabel">Incident Photo</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body text-center">
+            <img id="modalImage" src="" alt="Incident Photo" class="img-fluid rounded">
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            <button type="button" class="btn btn-primary" id="downloadModalImage">Download</button>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- Bootstrap JS -->
     <script
@@ -394,27 +412,7 @@ if (isset($_GET['logout'])) {
       crossorigin="anonymous"
     ></script>
 
-    <!-- Leaflet CSS -->
-    <link
-      rel="stylesheet"
-      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-      crossorigin=""
-    />
-
-    <!-- Leaflet JS -->
-    <script
-      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-      crossorigin=""
-    ></script>
-
-
-
-    <!-- EXIF reader -->
-    <script src="https://cdn.jsdelivr.net/npm/exif-js@2.3.0/exif.min.js"></script>
-
-    <script src="scripts/dashboard.js"></script>
+    <script src="scripts/incidents.js"></script>
     <script>
       document.addEventListener('DOMContentLoaded', function () {
         document.querySelectorAll('.sidebar .nav-item').forEach(function (item) {
@@ -428,7 +426,4 @@ if (isset($_GET['logout'])) {
       });
     </script>
   </body>
-  </html>
-
-
-
+</html>
