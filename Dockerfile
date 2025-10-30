@@ -8,7 +8,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Install PHP extensions
-RUN docker-php-ext-install zip
+RUN docker-php-ext-install zip pdo pdo_mysql
 
 # Enable Apache modules
 RUN a2enmod rewrite

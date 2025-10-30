@@ -383,7 +383,7 @@ if (isset($_GET['logout'])) {
 
     <footer class="container pb-4 small text-center text-muted">
       <span class="d-inline-flex align-items-center gap-1">
-        <i class="bi bi-info-circle"></i> Local-only demo. No database. Data stored in your browser.
+        <i class="bi bi-info-circle"></i> MDRRMO Geotagged Incident Reporting System
       </span>
     </footer>
 

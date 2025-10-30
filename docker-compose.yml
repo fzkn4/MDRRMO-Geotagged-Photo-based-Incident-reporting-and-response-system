@@ -1,10 +1,11 @@
-version: "3.8"
-
 services:
   geotagged-app:
     build: .
     ports:
-      - "8080:80"
+      - target: 80
+        published: 0
+        protocol: tcp
+        mode: host
     volumes:
       # Mount the current directory for development
       - .:/var/www/html
@@ -12,31 +13,45 @@ services:
       - ./users.json:/var/www/html/users.json
     environment:
       - APACHE_DOCUMENT_ROOT=/var/www/html
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_NAME=geotagged
+      - DB_USER=geotagged_user
+      - DB_PASSWORD=geotagged_password
     restart: unless-stopped
     container_name: geotagged-incident-reporting
+    depends_on:
+      - db
 
-  # Optional: Add phpMyAdmin if you want to add database later
-  # phpmyadmin:
-  #   image: phpmyadmin/phpmyadmin
-  #   ports:
-  #     - "8081:80"
-  #   environment:
-  #     - PMA_HOST=db
-  #     - PMA_PORT=3306
-  #   depends_on:
-  #     - db
-  #   restart: unless-stopped
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    ports:
+      - target: 80
+        published: 0
+        protocol: tcp
+        mode: host
+    environment:
+      - PMA_HOST=db
+      - PMA_PORT=3306
+    depends_on:
+      - db
+    restart: unless-stopped
 
-  # Optional: Add MySQL/MariaDB if you want to add database later
-  # db:
-  #   image: mysql:8.0
-  #   environment:
-  #     MYSQL_ROOT_PASSWORD: rootpassword
-  #     MYSQL_DATABASE: geotagged
-  #     MYSQL_USER: geotagged_user
-  #     MYSQL_PASSWORD: geotagged_password
-  #   volumes:
-  #     - mysql_data:/var/lib/mysql
-  #   restart: unless-stopped
-# volumes:
-#   mysql_data:
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: geotagged
+      MYSQL_USER: geotagged_user
+      MYSQL_PASSWORD: geotagged_password
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+volumes:
+  mysql_data:

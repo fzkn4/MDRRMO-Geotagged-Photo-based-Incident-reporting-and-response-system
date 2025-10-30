@@ -6,9 +6,17 @@ if (!defined('SECURE_ACCESS')) {
     define('SECURE_ACCESS', true);
 }
 
+// Start session as early as possible to avoid "headers already sent"
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
 // Error reporting for debugging (remove in production)
 error_reporting(E_ALL);
 ini_set('display_errors', 1);
+
+// Database config
+require_once __DIR__ . '/config.php';
 
 function checkLogin() {
     if (session_status() === PHP_SESSION_NONE) {
@@ -104,6 +112,28 @@ function createUser($user_data) {
 function authenticateUser($username, $password) {
     startSession();
     
+    // Try database first
+    try {
+        $pdo = getPdoConnection();
+        $stmt = $pdo->prepare('SELECT id, username, email, password_hash, role, full_name, organization FROM users WHERE username = :u OR email = :u LIMIT 1');
+        $stmt->execute([':u' => $username]);
+        $user = $stmt->fetch();
+        if ($user && password_verify($password, $user['password_hash'])) {
+            $_SESSION['user_role'] = $user['role'] ?: 'client';
+            $_SESSION['user_data'] = [
+                'id' => $user['id'],
+                'username' => $user['username'],
+                'email' => $user['email'],
+                'full_name' => $user['full_name'] ?? $user['username'],
+                'role' => $_SESSION['user_role'],
+                'organization' => $user['organization'] ?? 'MDRRMO'
+            ];
+            return true;
+        }
+    } catch (Throwable $e) {
+        // Fall through to demo/file-based auth
+    }
+    
     // First check demo credentials
     $demo_credentials = [
         'admin' => 'mdrrmo2024',
@@ -122,7 +152,7 @@ function authenticateUser($username, $password) {
         return true;
     }
     
-    // Check registered users
+    // Check registered users (file-based fallback)
     $users = loadUsers();
     foreach ($users as $user) {
         if ($user['username'] === $username && password_verify($password, $user['password'])) {
@@ -160,4 +190,4 @@ function deleteUser($user_id) {
     }
     return false;
 }
-?>
+// Intentionally no closing PHP tag to prevent accidental output

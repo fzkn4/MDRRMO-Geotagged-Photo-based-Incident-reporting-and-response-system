@@ -37,7 +37,7 @@ If you're on Windows, you have several options:
    ```
 
 2. **Access the application:**
-   Open your browser and go to: `http://localhost:8080`
+   Open your browser and go to: `http://localhost:8085`
 
 3. **Stop the application:**
    ```bash
@@ -103,14 +103,35 @@ docker logs geotagged-incident-reporting
 docker-compose up --build
 ```
 
-## Adding Database Support (Optional)
+## Database Support (MySQL)
 
-If you want to add MySQL database support later, uncomment the database services in `docker-compose.yml`:
+This project is configured with MySQL and phpMyAdmin out-of-the-box.
 
-1. Uncomment the `db` service
-2. Uncomment the `phpmyadmin` service
-3. Uncomment the `volumes` section
-4. Update your PHP code to use database instead of file storage
+### Services
+
+- App: http://localhost:8085
+- phpMyAdmin: http://localhost:8081 (Server: `db`, User: `geotagged_user`, Password: `geotagged_password`)
+
+### Default Credentials (Database)
+
+- Host: `db`
+- Port: `3306`
+- Database: `geotagged`
+- User: `geotagged_user`
+- Password: `geotagged_password`
+
+These are set in `docker-compose.yml` and used by the app via environment variables.
+
+### Schema Initialization
+
+On first start, MySQL runs `db/init.sql` to create the `users` table. You can add users via phpMyAdmin or the app's signup flow (if enabled).
+
+To rebuild and re-init the DB from scratch:
+
+```bash
+docker-compose down -v
+docker-compose up --build
+```
 
 ## Troubleshooting
 
