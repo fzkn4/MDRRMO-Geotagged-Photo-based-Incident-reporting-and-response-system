@@ -125,17 +125,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           
           <div class="text-center mt-4">
             <small class="text-muted">
-              <i class="bi bi-info-circle me-1"></i>
-              Demo Credentials:<br>
-              admin / mdrrmo2024<br>
-              client / client2024
+              Don't have an account?
+              <a href="signup.php" class="text-decoration-none">Sign up here</a>
             </small>
-            <div class="mt-3">
-              <small class="text-muted">
-                Don't have an account? 
-                <a href="signup.php" class="text-decoration-none">Sign up here</a>
-              </small>
-            </div>
           </div>
         </div>
       </div>

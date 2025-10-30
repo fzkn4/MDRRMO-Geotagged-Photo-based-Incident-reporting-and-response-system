@@ -79,34 +79,42 @@ function saveUsers($users) {
 }
 
 function userExists($username) {
-    $users = loadUsers();
-    foreach ($users as $user) {
-        if ($user['username'] === $username) {
-            return true;
-        }
+    try {
+        $pdo = getPdoConnection();
+        $stmt = $pdo->prepare('SELECT 1 FROM users WHERE username = :u LIMIT 1');
+        $stmt->execute([':u' => $username]);
+        return (bool)$stmt->fetchColumn();
+    } catch (Throwable $e) {
+        return false;
     }
-    return false;
 }
 
 function emailExists($email) {
-    $users = loadUsers();
-    foreach ($users as $user) {
-        if ($user['email'] === $email) {
-            return true;
-        }
+    try {
+        $pdo = getPdoConnection();
+        $stmt = $pdo->prepare('SELECT 1 FROM users WHERE email = :e LIMIT 1');
+        $stmt->execute([':e' => $email]);
+        return (bool)$stmt->fetchColumn();
+    } catch (Throwable $e) {
+        return false;
     }
-    return false;
 }
 
 function createUser($user_data) {
-    $users = loadUsers();
-    
-    // Add user ID
-    $user_data['id'] = count($users) + 1;
-    
-    $users[] = $user_data;
-    
-    return saveUsers($users);
+    try {
+        $pdo = getPdoConnection();
+        $stmt = $pdo->prepare('INSERT INTO users (username, email, password_hash, role, full_name, organization) VALUES (:username, :email, :password_hash, :role, :full_name, :organization)');
+        return $stmt->execute([
+            ':username' => $user_data['username'],
+            ':email' => $user_data['email'],
+            ':password_hash' => $user_data['password'],
+            ':role' => $user_data['role'] ?? 'client',
+            ':full_name' => $user_data['full_name'] ?? $user_data['username'],
+            ':organization' => $user_data['organization'] ?? null,
+        ]);
+    } catch (Throwable $e) {
+        return false;
+    }
 }
 
 function authenticateUser($username, $password) {
@@ -134,34 +142,7 @@ function authenticateUser($username, $password) {
         // Fall through to demo/file-based auth
     }
     
-    // First check demo credentials
-    $demo_credentials = [
-        'admin' => 'mdrrmo2024',
-        'client' => 'client2024'
-    ];
-    
-    if (isset($demo_credentials[$username]) && $demo_credentials[$username] === $password) {
-        // Set demo user data
-        $_SESSION['user_role'] = $username;
-        $_SESSION['user_data'] = [
-            'username' => $username,
-            'full_name' => ucfirst($username),
-            'role' => $_SESSION['user_role'],
-            'organization' => 'MDRRMO Demo'
-        ];
-        return true;
-    }
-    
-    // Check registered users (file-based fallback)
-    $users = loadUsers();
-    foreach ($users as $user) {
-        if ($user['username'] === $username && password_verify($password, $user['password'])) {
-            $_SESSION['user_role'] = $user['role'];
-            $_SESSION['user_data'] = $user;
-            return true;
-        }
-    }
-    
+    // No demo or file-based fallback
     return false;
 }
 
