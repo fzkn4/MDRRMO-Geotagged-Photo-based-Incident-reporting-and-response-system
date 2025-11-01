@@ -29,6 +29,12 @@ RUN touch /var/www/html/users.json \
     && chown www-data:www-data /var/www/html/users.json \
     && chmod 644 /var/www/html/users.json
 
+# Configure PHP to log errors to stderr (for Docker)
+RUN echo 'log_errors = On' >> /usr/local/etc/php/conf.d/docker-php-logging.ini \
+    && echo 'error_log = /proc/self/fd/2' >> /usr/local/etc/php/conf.d/docker-php-logging.ini \
+    && echo 'display_errors = Off' >> /usr/local/etc/php/conf.d/docker-php-logging.ini \
+    && echo 'display_startup_errors = Off' >> /usr/local/etc/php/conf.d/docker-php-logging.ini
+
 # Configure Apache
 RUN echo '<Directory /var/www/html>\n\
     AllowOverride All\n\

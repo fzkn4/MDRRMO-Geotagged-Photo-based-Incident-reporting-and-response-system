@@ -13,17 +13,30 @@ $success_message = '';
 
 // Handle login form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $username = $_POST['username'] ?? '';
+    $username = trim($_POST['username'] ?? '');
     $password = $_POST['password'] ?? '';
     
-    if (authenticateUser($username, $password)) {
-        $_SESSION['logged_in'] = true;
-        $_SESSION['username'] = $username;
-        $_SESSION['login_time'] = time();
-        header('Location: index.php');
-        exit();
+    // Debug logging
+    error_log("Login attempt for username: " . $username);
+    
+    if (empty($username) || empty($password)) {
+        $error_message = 'Please enter both username and password.';
+        error_log("Login failed: Empty username or password");
     } else {
-        $error_message = 'Invalid username or password. Please try again.';
+        $auth_result = authenticateUser($username, $password);
+        error_log("authenticateUser() returned: " . ($auth_result ? 'true' : 'false'));
+        
+        if ($auth_result) {
+            $_SESSION['logged_in'] = true;
+            $_SESSION['username'] = $username;
+            $_SESSION['login_time'] = time();
+            error_log("Login successful for username: " . $username);
+            header('Location: index.php');
+            exit();
+        } else {
+            $error_message = 'Invalid username or password. Please try again.';
+            error_log("Login failed for username: " . $username);
+        }
     }
 }
 ?>

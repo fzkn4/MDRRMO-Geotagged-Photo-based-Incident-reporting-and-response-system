@@ -27,10 +27,12 @@ function getPdoConnection() {
 
     try {
         $pdo = new PDO($dsn, $username, $password, $options);
-    } catch (Throwable $e) {
-        // In development, surface a concise message
-        http_response_code(500);
-        die('Database connection failed.');
+    } catch (PDOException $e) {
+        // Log the error for debugging
+        error_log("Database connection failed: " . $e->getMessage());
+        error_log("Attempted connection - Host: {$host}, Port: {$port}, DB: {$dbname}, User: {$username}");
+        // Return null instead of dying, so calling code can handle it
+        return null;
     }
 
     return $pdo;

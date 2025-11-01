@@ -81,10 +81,18 @@ function saveUsers($users) {
 function userExists($username) {
     try {
         $pdo = getPdoConnection();
+        if (!$pdo) {
+            error_log("userExists failed: Could not establish database connection");
+            return false;
+        }
         $stmt = $pdo->prepare('SELECT 1 FROM users WHERE username = :u LIMIT 1');
+        if (!$stmt) {
+            return false;
+        }
         $stmt->execute([':u' => $username]);
         return (bool)$stmt->fetchColumn();
     } catch (Throwable $e) {
+        error_log("userExists error: " . $e->getMessage());
         return false;
     }
 }
@@ -92,10 +100,18 @@ function userExists($username) {
 function emailExists($email) {
     try {
         $pdo = getPdoConnection();
+        if (!$pdo) {
+            error_log("emailExists failed: Could not establish database connection");
+            return false;
+        }
         $stmt = $pdo->prepare('SELECT 1 FROM users WHERE email = :e LIMIT 1');
+        if (!$stmt) {
+            return false;
+        }
         $stmt->execute([':e' => $email]);
         return (bool)$stmt->fetchColumn();
     } catch (Throwable $e) {
+        error_log("emailExists error: " . $e->getMessage());
         return false;
     }
 }
@@ -103,7 +119,15 @@ function emailExists($email) {
 function createUser($user_data) {
     try {
         $pdo = getPdoConnection();
+        if (!$pdo) {
+            error_log("Create user failed: Could not establish database connection");
+            return false;
+        }
         $stmt = $pdo->prepare('INSERT INTO users (username, email, password_hash, role, full_name, organization) VALUES (:username, :email, :password_hash, :role, :full_name, :organization)');
+        if (!$stmt) {
+            error_log("Create user failed: Could not prepare database query");
+            return false;
+        }
         return $stmt->execute([
             ':username' => $user_data['username'],
             ':email' => $user_data['email'],
@@ -113,6 +137,7 @@ function createUser($user_data) {
             ':organization' => $user_data['organization'] ?? null,
         ]);
     } catch (Throwable $e) {
+        error_log("Create user error: " . $e->getMessage() . " in " . $e->getFile() . " on line " . $e->getLine());
         return false;
     }
 }
@@ -123,26 +148,51 @@ function authenticateUser($username, $password) {
     // Try database first
     try {
         $pdo = getPdoConnection();
+        if (!$pdo) {
+            error_log("Login failed: Could not establish database connection");
+            return false;
+        }
+        
         $stmt = $pdo->prepare('SELECT id, username, email, password_hash, role, full_name, organization FROM users WHERE username = :u OR email = :u LIMIT 1');
+        if (!$stmt) {
+            error_log("Login failed: Could not prepare database query");
+            return false;
+        }
+        
         $stmt->execute([':u' => $username]);
-        $user = $stmt->fetch();
-        if ($user && password_verify($password, $user['password_hash'])) {
-            $_SESSION['user_role'] = $user['role'] ?: 'client';
-            $_SESSION['user_data'] = [
-                'id' => $user['id'],
-                'username' => $user['username'],
-                'email' => $user['email'],
-                'full_name' => $user['full_name'] ?? $user['username'],
-                'role' => $_SESSION['user_role'],
-                'organization' => $user['organization'] ?? 'MDRRMO'
-            ];
-            return true;
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        if ($user) {
+            // Check if password_hash is valid
+            if (empty($user['password_hash'])) {
+                error_log("Login failed: User found but password_hash is empty for username: " . $username);
+                return false;
+            }
+            
+            if (password_verify($password, $user['password_hash'])) {
+                $_SESSION['user_role'] = $user['role'] ?: 'client';
+                $_SESSION['user_data'] = [
+                    'id' => $user['id'],
+                    'username' => $user['username'],
+                    'email' => $user['email'],
+                    'full_name' => $user['full_name'] ?? $user['username'],
+                    'role' => $_SESSION['user_role'],
+                    'organization' => $user['organization'] ?? 'MDRRMO'
+                ];
+                $_SESSION['logged_in'] = true;
+                $_SESSION['username'] = $user['username'];
+                return true;
+            } else {
+                error_log("Login failed: Password verification failed for username: " . $username);
+            }
+        } else {
+            error_log("Login failed: No user found with username/email: " . $username);
         }
     } catch (Throwable $e) {
-        // Fall through to demo/file-based auth
+        error_log("Login error: " . $e->getMessage() . " in " . $e->getFile() . " on line " . $e->getLine());
+        // Fall through to return false
     }
     
-    // No demo or file-based fallback
     return false;
 }
 
