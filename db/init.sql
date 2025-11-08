@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS users (
   organization VARCHAR(255) DEFAULT NULL,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Optional: seed an admin user placeholder (password must be set via app)
 -- INSERT INTO users (username, email, password_hash, role, full_name, organization)
