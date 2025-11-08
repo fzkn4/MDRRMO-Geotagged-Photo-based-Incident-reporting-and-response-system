@@ -59,22 +59,15 @@ The application includes a comprehensive authentication system with user registr
 
 ## Setup Instructions
 
-1. **Docker Setup** (Recommended):
+### Docker (Development)
 
-   ```bash
-   docker run -d -p 8080:80 -v $(pwd):/var/www/html --name php-app php:8.2-apache
-   ```
+See `README-Docker.md` for the complete Docker Compose workflow that replicates the container environment bundled with the project.
 
-2. **Access the Application**:
+### XAMPP (Windows)
 
-   - Open your browser and go to `http://localhost:8080`
-   - You'll be redirected to the login page
-   - Use one of the demo credentials to log in
+Follow `docs/xampp-setup.md` for a detailed guide to installing the system on XAMPP, including Apache/PHP configuration, `.env` variable management, database provisioning, and troubleshooting practices adapted from the ZDSPGC Event & Inventory Management System deployment notes.[^zdspgc]
 
-3. **Development**:
-   - The application uses PHP sessions for authentication
-   - Replace the demo authentication in `auth.php` with database authentication for production
-   - All incident data is stored locally in the browser (localStorage)
+[^zdspgc]: https://github.com/fzkn4/ZDSPGC-EVENT-AND-INVENTORY-MANAGEMENT-SYSTEM
 
 ## Security Notes
 
@@ -89,4 +82,3 @@ The application includes a comprehensive authentication system with user registr
 - Geolocation API support for GPS functionality
 - File API support for photo uploads
 - LocalStorage support for data persistence
-
