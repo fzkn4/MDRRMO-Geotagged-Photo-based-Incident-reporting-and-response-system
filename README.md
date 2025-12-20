@@ -63,22 +63,3 @@ The application includes a comprehensive authentication system with user registr
 
 See `README-Docker.md` for the complete Docker Compose workflow that replicates the container environment bundled with the project.
 
-### XAMPP (Windows)
-
-Follow `docs/xampp-setup.md` for a detailed guide to installing the system on XAMPP, including Apache/PHP configuration, `.env` variable management, database provisioning, and troubleshooting practices adapted from the ZDSPGC Event & Inventory Management System deployment notes.[^zdspgc]
-
-[^zdspgc]: https://github.com/fzkn4/ZDSPGC-EVENT-AND-INVENTORY-MANAGEMENT-SYSTEM
-
-## Security Notes
-
-- This is a demo application with hardcoded credentials
-- For production use, implement proper database authentication
-- Consider adding password hashing, CSRF protection, and rate limiting
-- Session timeout and secure cookie settings should be configured
-
-## Browser Compatibility
-
-- Modern browsers with ES6+ support
-- Geolocation API support for GPS functionality
-- File API support for photo uploads
-- LocalStorage support for data persistence
