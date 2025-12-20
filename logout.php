@@ -1,12 +1,9 @@
 <?php
-session_start();
+define('SECURE_ACCESS', true);
+require_once 'auth.php';
 
-// Destroy the session
-session_destroy();
-
-// Redirect to login page
-header('Location: login.php');
-exit();
+// Use the logout function from auth.php which properly handles session cleanup
+logout();
+// Note: logout() function already redirects and exits, so code below won't execute
 ?>
-
 

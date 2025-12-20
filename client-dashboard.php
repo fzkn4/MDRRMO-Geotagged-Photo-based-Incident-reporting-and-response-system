@@ -5,21 +5,22 @@ require_once 'auth.php';
 // Check if user is logged in
 checkLogin();
 
-// Redirect based on role
-$userRole = getUserRole();
-if ($userRole === 'admin') {
+if (getUserRole() === 'admin') {
     header('Location: admin-dashboard.php');
-} else {
-    header('Location: client-dashboard.php');
+    exit();
 }
-exit();
+
+// Handle logout
+if (isset($_GET['logout'])) {
+    logout();
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>MDRRMO | Geotagged Incident Reporting</title>
+    <title>Client Dashboard | MDRRMO Incident Reporting</title>
 
     <!-- Bootstrap CSS -->
     <link
@@ -34,8 +35,6 @@ exit();
       rel="stylesheet"
       href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"
     />
-
-
 
     <link rel="stylesheet" href="styles/dashboard.css" />
     <!-- Flaticon UIcons -->
@@ -64,18 +63,18 @@ exit();
         <div class="nav-section">
           <div class="nav-section-title" id="navTitle">Navigation</div>
           
-          <a href="index.php" class="nav-item active">
+          <a href="client-dashboard.php" class="nav-item active">
             <div class="nav-icon">
               <i data-filled="fi fi-sr-apps" data-unfilled="fi fi-rr-apps"></i>
             </div>
             <div class="nav-text">Dashboard</div>
           </a>
           
-          <a href="incidents.php" class="nav-item" id="incidentsLink">
+          <a href="client/incidents.php" class="nav-item" id="incidentsLink">
             <div class="nav-icon">
               <i data-filled="fi fi-sr-light-emergency-on" data-unfilled="fi fi-rr-light-emergency-on"></i>
             </div>
-            <div class="nav-text">Incidents</div>
+            <div class="nav-text">My Incidents</div>
             <div class="nav-badge warning" id="incidentCount">0</div>
           </a>
           
@@ -85,28 +84,8 @@ exit();
             </div>
             <div class="nav-text">Map View</div>
           </a>
-          
-          <?php if (getUserRole() === 'admin'): ?>
-          <a href="users.php" class="nav-item">
-            <div class="nav-icon">
-              <i data-filled="fi fi-sr-users" data-unfilled="fi fi-br-users"></i>
-            </div>
-            <div class="nav-text">Users</div>
-            <div class="nav-badge primary" id="userCount">0</div>
-          </a>
-          
-          <a href="#" class="nav-item disabled" style="opacity: 0.5; cursor: not-allowed;" title="Coming Soon">
-            <div class="nav-icon">
-              <i data-filled="fi fi-sr-rectangle-list" data-unfilled="fi fi-br-rectangle-list"></i>
-            </div>
-            <div class="nav-text">Reports</div>
-          </a>
-          
-          <?php endif; ?>
         </div>
       </div>
-      
-
     </div>
     
     <!-- Main Content -->
@@ -123,9 +102,7 @@ exit();
               <a class="nav-link dropdown-toggle" href="#" role="button" aria-expanded="false">
                 <i class="bi bi-person-circle me-1"></i>
                 <?php echo htmlspecialchars(getCurrentUser()); ?>
-                <span class="badge bg-<?php echo getUserRole() === 'admin' ? 'danger' : 'primary'; ?> ms-1">
-                  <?php echo ucfirst(getUserRole()); ?>
-                </span>
+                <span class="badge bg-primary ms-1">Client</span>
               </a>
               <ul class="dropdown-menu dropdown-menu-end">
                 <li><a class="dropdown-item" href="#"><i class="bi bi-person me-2"></i>Profile</a></li>
@@ -138,24 +115,22 @@ exit();
         </div>
       </nav>
 
-          <main class="container-fluid py-4">
+      <main class="container-fluid py-4">
         <!-- Page Header -->
         <div class="row mb-4">
           <div class="col-12">
             <div class="d-flex justify-content-between align-items-center">
               <div>
                 <h1 class="h3 mb-1">Dashboard</h1>
-                <p class="text-muted mb-0">Welcome back, <?php echo htmlspecialchars(getCurrentUser()); ?>!</p>
+                <p class="text-muted mb-0">Welcome back, <?php echo htmlspecialchars(getCurrentUser()); ?>! Report and view incidents.</p>
               </div>
               <div class="d-flex gap-2">
                 <button class="btn btn-outline-secondary" id="btnRefresh">
                   <i class="bi bi-arrow-clockwise"></i> Refresh
                 </button>
-                <?php if (getUserRole() === 'admin'): ?>
-                  <a href="users.php" class="btn btn-primary">
-                    <i class="bi bi-people"></i> Manage Users
-                  </a>
-                <?php endif; ?>
+                <a href="client/incidents.php" class="btn btn-primary">
+                  <i class="bi bi-eye"></i> View My Incidents
+                </a>
               </div>
             </div>
           </div>
@@ -163,7 +138,7 @@ exit();
 
         <!-- Stats Cards -->
         <div class="row mb-4">
-          <div class="col-xl-3 col-md-6 mb-3">
+          <div class="col-xl-4 col-md-6 mb-3">
             <div class="card border-0 shadow-sm">
               <div class="card-body">
                 <div class="d-flex align-items-center">
@@ -173,15 +148,15 @@ exit();
                     </div>
                   </div>
                   <div class="flex-grow-1 ms-3">
-                    <h6 class="card-title text-muted mb-1">Total Incidents</h6>
-                    <h4 class="mb-0" id="totalIncidents">0</h4>
+                    <h6 class="card-title text-muted mb-1">My Reported Incidents</h6>
+                    <h4 class="mb-0" id="myIncidents">0</h4>
                   </div>
                 </div>
               </div>
             </div>
           </div>
           
-          <div class="col-xl-3 col-md-6 mb-3">
+          <div class="col-xl-4 col-md-6 mb-3">
             <div class="card border-0 shadow-sm">
               <div class="card-body">
                 <div class="d-flex align-items-center">
@@ -191,15 +166,15 @@ exit();
                     </div>
                   </div>
                   <div class="flex-grow-1 ms-3">
-                    <h6 class="card-title text-muted mb-1">New Incidents</h6>
-                    <h4 class="mb-0" id="newIncidents">0</h4>
+                    <h6 class="card-title text-muted mb-1">Pending</h6>
+                    <h4 class="mb-0" id="pendingIncidents">0</h4>
                   </div>
                 </div>
               </div>
             </div>
           </div>
           
-          <div class="col-xl-3 col-md-6 mb-3">
+          <div class="col-xl-4 col-md-6 mb-3">
             <div class="card border-0 shadow-sm">
               <div class="card-body">
                 <div class="d-flex align-items-center">
@@ -216,35 +191,15 @@ exit();
               </div>
             </div>
           </div>
-          
-          <?php if (getUserRole() === 'admin'): ?>
-          <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card border-0 shadow-sm">
-              <div class="card-body">
-                <div class="d-flex align-items-center">
-                  <div class="flex-shrink-0">
-                    <div class="bg-info bg-opacity-10 p-3 rounded">
-                      <i class="bi bi-people text-info fs-4"></i>
-                    </div>
-                  </div>
-                  <div class="flex-grow-1 ms-3">
-                    <h6 class="card-title text-muted mb-1">Active Users</h6>
-                    <h4 class="mb-0" id="activeUsers">0</h4>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          <?php endif; ?>
         </div>
 
         <div class="row g-4">
-          <!-- Incidents List -->
+          <!-- My Incidents List -->
           <div class="col-12 col-lg-8">
             <div class="card border-0 shadow-sm">
               <div class="card-header bg-white border-0">
                 <div class="d-flex justify-content-between align-items-center">
-                  <h5 class="mb-0">Recent Incidents</h5>
+                  <h5 class="mb-0">My Recent Incidents</h5>
                   <div class="d-flex gap-2">
                     <select id="filterStatus" class="form-select form-select-sm" style="width: 150px">
                       <option value="All" selected>All statuses</option>
@@ -253,12 +208,9 @@ exit();
                       <option value="Resolved">Resolved</option>
                       <option value="Cancelled">Cancelled</option>
                     </select>
-                    <button class="btn btn-sm btn-outline-success" id="btnExportAll">
-                      <i class="bi bi-download"></i> Export
-                    </button>
-                    <button class="btn btn-sm btn-outline-danger" id="btnClearAll">
-                      <i class="bi bi-trash"></i> Clear All
-                    </button>
+                    <a href="client/incidents.php" class="btn btn-sm btn-outline-primary">
+                      <i class="bi bi-eye"></i> View All
+                    </a>
                   </div>
                 </div>
               </div>
@@ -268,128 +220,129 @@ exit();
             </div>
           </div>
 
-                  <!-- New Incident Form -->
+          <!-- New Incident Form -->
           <div class="col-12 col-lg-4">
             <div class="card border-0 shadow-sm">
               <div class="card-header bg-white border-0">
                 <div class="d-flex align-items-center justify-content-between">
                   <h5 class="mb-0 d-flex align-items-center gap-2">
-                    <i class="bi bi-plus-circle text-primary"></i> New Incident
+                    <i class="bi bi-plus-circle text-primary"></i> Report New Incident
                   </h5>
                   <span class="badge bg-secondary" id="clockBadge">--:--</span>
                 </div>
               </div>
-            <div class="card-body">
-              <form id="incidentForm" class="needs-validation" novalidate>
-                <div class="row g-2">
-                  <div class="col-12 col-md-6">
-                    <label for="incidentType" class="form-label">Type</label>
-                    <select id="incidentType" class="form-select" required>
-                      <option value="" selected disabled>Choose...</option>
-                      <option value="Fire">Fire</option>
-                      <option value="Flood">Flood</option>
-                      <option value="Road Accident">Road Accident</option>
-                      <option value="Medical">Medical</option>
-                      <option value="Landslide">Landslide</option>
-                      <option value="Earthquake">Earthquake</option>
-                      <option value="Power Outage">Power Outage</option>
-                      <option value="Other">Other</option>
-                    </select>
-                    <div class="invalid-feedback">Please select a type.</div>
-                  </div>
-                  <div class="col-12 col-md-6">
-                    <label for="severity" class="form-label">Severity</label>
-                    <select id="severity" class="form-select" required>
-                      <option value="" selected disabled>Choose...</option>
-                      <option value="Low">Low</option>
-                      <option value="Moderate">Moderate</option>
-                      <option value="High">High</option>
-                      <option value="Critical">Critical</option>
-                    </select>
-                    <div class="invalid-feedback">Please select severity.</div>
-                  </div>
-                  <div class="col-12">
-                    <label for="description" class="form-label">Description</label>
-                    <textarea id="description" class="form-control" rows="3" placeholder="Brief details (what/where/obstructions/injuries)" required></textarea>
-                    <div class="invalid-feedback">Please enter a description.</div>
-                  </div>
-                  <div class="col-12">
-                    <label class="form-label d-flex align-items-center gap-2"
-                      ><i class="bi bi-camera"></i> Photo (geotag preferred)</label
-                    >
-                    <input
-                      id="photo"
-                      type="file"
-                      class="form-control"
-                      accept="image/*"
-                      capture="environment"
-                      required
-                    />
-                    <div class="invalid-feedback">Photo is required.</div>
-                    <div class="form-text" id="photoMeta">Awaiting image...</div>
-                    <div class="ratio ratio-16x9 mt-2 border rounded overflow-hidden bg-body" id="photoPreviewWrap">
-                      <img id="photoPreview" alt="Preview" class="object-fit-cover w-100 h-100 d-none" />
-                      <div class="d-flex align-items-center justify-content-center text-muted" id="photoPlaceholder">
-                        <div class="text-center small">
-                          <i class="bi bi-image fs-3 d-block mb-1"></i>
-                          Photo preview
+              <div class="card-body">
+                <form id="incidentForm" class="needs-validation" novalidate>
+                  <div class="row g-2">
+                    <div class="col-12 col-md-6">
+                      <label for="incidentType" class="form-label">Type</label>
+                      <select id="incidentType" class="form-select" required>
+                        <option value="" selected disabled>Choose...</option>
+                        <option value="Fire">Fire</option>
+                        <option value="Flood">Flood</option>
+                        <option value="Road Accident">Road Accident</option>
+                        <option value="Medical">Medical</option>
+                        <option value="Landslide">Landslide</option>
+                        <option value="Earthquake">Earthquake</option>
+                        <option value="Power Outage">Power Outage</option>
+                        <option value="Other">Other</option>
+                      </select>
+                      <div class="invalid-feedback">Please select a type.</div>
+                    </div>
+                    <div class="col-12 col-md-6">
+                      <label for="severity" class="form-label">Severity</label>
+                      <select id="severity" class="form-select" required>
+                        <option value="" selected disabled>Choose...</option>
+                        <option value="Low">Low</option>
+                        <option value="Moderate">Moderate</option>
+                        <option value="High">High</option>
+                        <option value="Critical">Critical</option>
+                      </select>
+                      <div class="invalid-feedback">Please select severity.</div>
+                    </div>
+                    <div class="col-12">
+                      <label for="description" class="form-label">Description</label>
+                      <textarea id="description" class="form-control" rows="3" placeholder="Brief details (what/where/obstructions/injuries)" required></textarea>
+                      <div class="invalid-feedback">Please enter a description.</div>
+                    </div>
+                    <div class="col-12">
+                      <label class="form-label d-flex align-items-center gap-2"
+                        ><i class="bi bi-camera"></i> Photo (geotag preferred)</label
+                      >
+                      <input
+                        id="photo"
+                        type="file"
+                        class="form-control"
+                        accept="image/*"
+                        capture="environment"
+                        required
+                      />
+                      <div class="invalid-feedback">Photo is required.</div>
+                      <div class="form-text" id="photoMeta">Awaiting image...</div>
+                      <div class="ratio ratio-16x9 mt-2 border rounded overflow-hidden bg-body" id="photoPreviewWrap">
+                        <img id="photoPreview" alt="Preview" class="object-fit-cover w-100 h-100 d-none" />
+                        <div class="d-flex align-items-center justify-content-center text-muted" id="photoPlaceholder">
+                          <div class="text-center small">
+                            <i class="bi bi-image fs-3 d-block mb-1"></i>
+                            Photo preview
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
 
-                  <div class="col-12">
-                    <div class="d-flex align-items-center justify-content-between mb-1">
-                      <label class="form-label mb-0 d-flex align-items-center gap-2"
-                        ><i class="bi bi-geo-alt"></i> Location</label
-                      >
-                      <div class="btn-group btn-group-sm" role="group">
-                        <button type="button" id="btnUseMyLocation" class="btn btn-outline-primary">
-                          <i class="bi bi-crosshair"></i> Use my location
-                        </button>
-                        <button type="button" id="btnClearLocation" class="btn btn-outline-secondary">
-                          <i class="bi bi-x"></i>
-                        </button>
+                    <div class="col-12">
+                      <div class="d-flex align-items-center justify-content-between mb-1">
+                        <label class="form-label mb-0 d-flex align-items-center gap-2"
+                          ><i class="bi bi-geo-alt"></i> Location</label
+                        >
+                        <div class="btn-group btn-group-sm" role="group">
+                          <button type="button" id="btnUseMyLocation" class="btn btn-outline-primary">
+                            <i class="bi bi-crosshair"></i> Use my location
+                          </button>
+                          <button type="button" id="btnClearLocation" class="btn btn-outline-secondary">
+                            <i class="bi bi-x"></i>
+                          </button>
+                        </div>
+                      </div>
+                      <div class="row g-2 align-items-center mb-2">
+                        <div class="col-6">
+                          <input id="lat" class="form-control" placeholder="Latitude" readonly />
+                        </div>
+                        <div class="col-6">
+                          <input id="lng" class="form-control" placeholder="Longitude" readonly />
+                        </div>
+                      </div>
+                      <div id="locationNote" class="small text-muted mb-2">No location yet</div>
+                      
+                      <!-- Location Map -->
+                      <div class="mt-2">
+                        <div id="locationMap" class="rounded border" style="height: 200px; width: 100%;"></div>
+                        <div class="form-text small mt-1">Click on the map to set location or use the buttons above</div>
                       </div>
                     </div>
-                    <div class="row g-2 align-items-center mb-2">
-                      <div class="col-6">
-                        <input id="lat" class="form-control" placeholder="Latitude" readonly />
-                      </div>
-                      <div class="col-6">
-                        <input id="lng" class="form-control" placeholder="Longitude" readonly />
-                      </div>
-                    </div>
-                    <div id="locationNote" class="small text-muted mb-2">No location yet</div>
-                    
-                    <!-- Location Map -->
-                    <div class="mt-2">
-                      <div id="locationMap" class="rounded border" style="height: 200px; width: 100%;"></div>
-                      <div class="form-text small mt-1">Click on the map to set location or use the buttons above</div>
-                    </div>
-                  </div>
 
-                  <div class="col-12 d-grid gap-2 mt-2">
-                    <button class="btn btn-danger" id="btnAddIncident" type="submit">
-                      <i class="bi bi-plus-circle"></i> Add Incident
-                    </button>
-                    <button class="btn btn-outline-secondary" id="btnResetForm" type="button">
-                      <i class="bi bi-arrow-counterclockwise"></i> Reset
-                    </button>
+                    <div class="col-12 d-grid gap-2 mt-2">
+                      <button class="btn btn-danger" id="btnAddIncident" type="submit">
+                        <i class="bi bi-plus-circle"></i> Report Incident
+                      </button>
+                      <button class="btn btn-outline-secondary" id="btnResetForm" type="button">
+                        <i class="bi bi-arrow-counterclockwise"></i> Reset
+                      </button>
+                    </div>
                   </div>
-                </div>
-              </form>
+                </form>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    </main>
+      </main>
 
-    <footer class="container pb-4 small text-center text-muted">
-      <span class="d-inline-flex align-items-center gap-1">
-        <i class="bi bi-info-circle"></i> MDRRMO Geotagged Incident Reporting System
-      </span>
-    </footer>
+      <footer class="container pb-4 small text-center text-muted">
+        <span class="d-inline-flex align-items-center gap-1">
+          <i class="bi bi-info-circle"></i> MDRRMO Geotagged Incident Reporting System
+        </span>
+      </footer>
+    </div>
 
     <!-- Bootstrap JS -->
     <script
@@ -413,8 +366,6 @@ exit();
       crossorigin=""
     ></script>
 
-
-
     <!-- EXIF reader -->
     <script src="https://cdn.jsdelivr.net/npm/exif-js@2.3.0/exif.min.js"></script>
 
@@ -432,7 +383,4 @@ exit();
       });
     </script>
   </body>
-  </html>
-
-
-
+</html>

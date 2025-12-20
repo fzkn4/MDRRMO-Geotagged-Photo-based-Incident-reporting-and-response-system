@@ -392,8 +392,8 @@
           fullscreenBtn.innerHTML = '<i class="bi bi-fullscreen-exit"></i>';
           fullscreenBtn.title = "Exit Fullscreen";
         })
-        .catch((err) => {
-          console.log("Error attempting to enable fullscreen:", err);
+        .catch(() => {
+          // Fullscreen not supported or denied
         });
     } else {
       document
@@ -402,8 +402,8 @@
           fullscreenBtn.innerHTML = '<i class="bi bi-arrows-fullscreen"></i>';
           fullscreenBtn.title = "Toggle Fullscreen";
         })
-        .catch((err) => {
-          console.log("Error attempting to exit fullscreen:", err);
+        .catch(() => {
+          // Exit fullscreen failed
         });
     }
   }
@@ -439,23 +439,68 @@
 
   // Initialize Bootstrap dropdowns
   document.addEventListener("DOMContentLoaded", function () {
-    // Manual dropdown functionality
-    document.querySelectorAll(".dropdown-toggle").forEach(function (toggle) {
-      toggle.addEventListener("click", function (e) {
+    // Manual dropdown functionality - use multiple selectors to ensure we find the dropdown
+    const dropdownSelectors = [
+      ".dropdown-toggle",
+      "#mainContent nav .nav-link.dropdown-toggle",
+      "#mainContent > nav > div > div.navbar-nav > div.nav-item > a.nav-link",
+    ];
+
+    let dropdownToggles = [];
+    dropdownSelectors.forEach((selector) => {
+      const elements = document.querySelectorAll(selector);
+      elements.forEach((el) => {
+        if (!dropdownToggles.includes(el)) {
+          dropdownToggles.push(el);
+        }
+      });
+    });
+
+    // If still not found, try the specific path (accounting for button)
+    if (dropdownToggles.length === 0) {
+      const mainContent = document.getElementById("mainContent");
+      if (mainContent) {
+        const nav = mainContent.querySelector("nav");
+        if (nav) {
+          const navLink = nav.querySelector(".nav-link.dropdown-toggle");
+          if (navLink) {
+            dropdownToggles.push(navLink);
+          }
+        }
+      }
+    }
+
+    dropdownToggles.forEach(function (toggle) {
+      // Remove any existing listeners by cloning
+      const newToggle = toggle.cloneNode(true);
+      toggle.parentNode.replaceChild(newToggle, toggle);
+
+      newToggle.addEventListener("click", function (e) {
         e.preventDefault();
         e.stopPropagation();
 
-        const dropdownContainer = this.closest(".dropdown");
-        const dropdownMenu = dropdownContainer.querySelector(".dropdown-menu");
+        // Find the dropdown menu (ul element) within the same dropdown container
+        const dropdownContainer =
+          this.closest(".dropdown") || this.closest(".nav-item.dropdown");
+        if (!dropdownContainer) {
+          return;
+        }
 
-        dropdownMenu.classList.remove("show");
+        const dropdownMenu = dropdownContainer.querySelector(".dropdown-menu");
+        if (!dropdownMenu) {
+          return;
+        }
+
+        // Check current state
         const isOpen = dropdownMenu.classList.contains("show");
 
-        // Close all other dropdowns
+        // Close all other dropdowns first
         document
           .querySelectorAll(".dropdown-menu.show")
           .forEach(function (menu) {
-            menu.classList.remove("show");
+            if (menu !== dropdownMenu) {
+              menu.classList.remove("show");
+            }
           });
 
         // Toggle current dropdown

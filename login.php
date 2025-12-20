@@ -4,7 +4,12 @@ require_once 'auth.php';
 
 // Check if user is already logged in
 if (isLoggedIn()) {
-    header('Location: index.php');
+    $userRole = getUserRole();
+    if ($userRole === 'admin') {
+        header('Location: admin-dashboard.php');
+    } else {
+        header('Location: client-dashboard.php');
+    }
     exit();
 }
 
@@ -16,26 +21,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = trim($_POST['username'] ?? '');
     $password = $_POST['password'] ?? '';
     
-    // Debug logging
-    error_log("Login attempt for username: " . $username);
-    
     if (empty($username) || empty($password)) {
         $error_message = 'Please enter both username and password.';
-        error_log("Login failed: Empty username or password");
     } else {
         $auth_result = authenticateUser($username, $password);
-        error_log("authenticateUser() returned: " . ($auth_result ? 'true' : 'false'));
         
         if ($auth_result) {
             $_SESSION['logged_in'] = true;
             $_SESSION['username'] = $username;
             $_SESSION['login_time'] = time();
-            error_log("Login successful for username: " . $username);
-            header('Location: index.php');
+            
+            // Redirect based on user role
+            $userRole = getUserRole();
+            if ($userRole === 'admin') {
+                header('Location: admin-dashboard.php');
+            } else {
+                header('Location: client-dashboard.php');
+            }
             exit();
         } else {
             $error_message = 'Invalid username or password. Please try again.';
-            error_log("Login failed for username: " . $username);
         }
     }
 }

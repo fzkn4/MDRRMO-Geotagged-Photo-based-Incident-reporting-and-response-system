@@ -2,10 +2,7 @@ services:
   geotagged-app:
     build: .
     ports:
-      - target: 80
-        published: 0
-        protocol: tcp
-        mode: host
+      - "8080:80"
     volumes:
       # Mount the current directory for development
       - .:/var/www/html
@@ -26,10 +23,7 @@ services:
   phpmyadmin:
     image: phpmyadmin/phpmyadmin
     ports:
-      - target: 80
-        published: 0
-        protocol: tcp
-        mode: host
+      - "8081:80"
     environment:
       - PMA_HOST=db
       - PMA_PORT=3306
