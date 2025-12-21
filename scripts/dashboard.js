@@ -54,8 +54,22 @@
   if (clockBadge) {
     initClock();
   }
-  initLocationMap();
-  renderList();
+  // Only initialize map if Leaflet is available and the element exists
+  // Safely check for Leaflet without causing reference errors
+  const hasLeaflet = (function () {
+    try {
+      return typeof window.L !== "undefined" && window.L !== null;
+    } catch (e) {
+      return false;
+    }
+  })();
+
+  if (hasLeaflet && document.getElementById("locationMap")) {
+    initLocationMap();
+  }
+  if (listEl) {
+    renderList();
+  }
 
   function initClock() {
     // Double check that clockBadge exists before proceeding
@@ -96,44 +110,88 @@
   }
 
   function initLocationMap() {
-    locationMap = L.map("locationMap");
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      maxZoom: 18,
-      attribution: "© OpenStreetMap",
-    }).addTo(locationMap);
+    try {
+      // Safely check if Leaflet is available
+      let L;
+      try {
+        L = window.L;
+        if (typeof L === "undefined" || L === null) {
+          console.warn(
+            "Leaflet is not loaded. Map functionality will not be available."
+          );
+          return;
+        }
+      } catch (e) {
+        console.warn("Leaflet is not available");
+        return;
+      }
 
-    // Default to Philippines center
-    locationMap.setView([12.8797, 121.774], 5);
+      const mapElement = document.getElementById("locationMap");
+      if (!mapElement) {
+        return;
+      }
 
-    // Add click event to set location
-    locationMap.on("click", (e) => {
-      setLocation(e.latlng.lat, e.latlng.lng, "map-click");
-    });
+      // Now safely use L
+      locationMap = L.map("locationMap");
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 18,
+        attribution: "© OpenStreetMap",
+      }).addTo(locationMap);
+
+      // Default to Philippines center
+      locationMap.setView([12.8797, 121.774], 5);
+
+      // Add click event to set location
+      locationMap.on("click", (e) => {
+        setLocation(e.latlng.lat, e.latlng.lng, "map-click");
+      });
+    } catch (error) {
+      console.warn("Error initializing location map:", error);
+      // Silently fail - map functionality is optional
+    }
   }
 
   function setLocation(lat, lng, source = "") {
-    latEl.value = Number(lat).toFixed(6);
-    lngEl.value = Number(lng).toFixed(6);
-    mapNote.textContent = `Location set ${source ? "via " + source : ""}`;
+    if (latEl) latEl.value = Number(lat).toFixed(6);
+    if (lngEl) lngEl.value = Number(lng).toFixed(6);
+    if (mapNote) {
+      mapNote.textContent = `Location set ${source ? "via " + source : ""}`;
+    }
 
-    // Update map view and marker
-    if (locationMap) {
-      locationMap.setView([lat, lng], 14);
+    // Update map view and marker (only if Leaflet is available and map is initialized)
+    try {
+      if (locationMap) {
+        // Safely get L
+        let L;
+        try {
+          L = window.L;
+          if (typeof L === "undefined" || L === null) {
+            return; // Leaflet not available
+          }
+        } catch (e) {
+          return; // Leaflet not available
+        }
 
-      // Remove existing marker if any
-      if (locationMarker) {
-        locationMap.removeLayer(locationMarker);
+        locationMap.setView([lat, lng], 14);
+
+        // Remove existing marker if any
+        if (locationMarker) {
+          locationMap.removeLayer(locationMarker);
+        }
+
+        // Add new marker
+        locationMarker = L.marker([lat, lng]).addTo(locationMap);
       }
-
-      // Add new marker
-      locationMarker = L.marker([lat, lng]).addTo(locationMap);
+    } catch (error) {
+      console.warn("Error updating map location:", error);
+      // Silently fail - map functionality is optional
     }
   }
 
   function clearLocation() {
-    latEl.value = "";
-    lngEl.value = "";
-    mapNote.textContent = "No location yet";
+    if (latEl) latEl.value = "";
+    if (lngEl) lngEl.value = "";
+    if (mapNote) mapNote.textContent = "No location yet";
 
     // Clear map marker
     if (locationMarker && locationMap) {
@@ -142,40 +200,46 @@
     }
   }
 
-  useMyLocationBtn.addEventListener("click", async () => {
-    if (!navigator.geolocation) {
-      alert("Geolocation not supported in this browser.");
-      return;
-    }
-    useMyLocationBtn.disabled = true;
-    useMyLocationBtn.innerHTML =
-      '<span class="spinner-border spinner-border-sm"></span> Locating...';
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const { latitude, longitude } = pos.coords;
-        setLocation(latitude, longitude, "gps");
-        useMyLocationBtn.disabled = false;
-        useMyLocationBtn.innerHTML =
-          '<i class="bi bi-crosshair"></i> Use my location';
-      },
-      (err) => {
-        alert("Unable to get location: " + err.message);
-        useMyLocationBtn.disabled = false;
-        useMyLocationBtn.innerHTML =
-          '<i class="bi bi-crosshair"></i> Use my location';
-      },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-    );
-  });
+  if (useMyLocationBtn) {
+    useMyLocationBtn.addEventListener("click", async () => {
+      if (!navigator.geolocation) {
+        alert("Geolocation not supported in this browser.");
+        return;
+      }
+      useMyLocationBtn.disabled = true;
+      useMyLocationBtn.innerHTML =
+        '<span class="spinner-border spinner-border-sm"></span> Locating...';
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const { latitude, longitude } = pos.coords;
+          setLocation(latitude, longitude, "gps");
+          useMyLocationBtn.disabled = false;
+          useMyLocationBtn.innerHTML =
+            '<i class="bi bi-crosshair"></i> Use my location';
+        },
+        (err) => {
+          alert("Unable to get location: " + err.message);
+          useMyLocationBtn.disabled = false;
+          useMyLocationBtn.innerHTML =
+            '<i class="bi bi-crosshair"></i> Use my location';
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
+    });
+  }
 
-  clearLocationBtn.addEventListener("click", clearLocation);
+  if (clearLocationBtn) {
+    clearLocationBtn.addEventListener("click", clearLocation);
+  }
 
-  photoInput.addEventListener("change", async (e) => {
-    const file = e.target.files && e.target.files[0];
-    if (!file) return;
-    previewPhoto(file);
-    tryExtractExif(file);
-  });
+  if (photoInput) {
+    photoInput.addEventListener("change", async (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      previewPhoto(file);
+      tryExtractExif(file);
+    });
+  }
 
   function previewPhoto(file) {
     const reader = new FileReader();
@@ -295,7 +359,8 @@
   }
 
   function renderList() {
-    const statusFilter = filterStatus.value;
+    if (!listEl) return;
+    const statusFilter = filterStatus ? filterStatus.value : "All";
     const items = incidents
       .slice()
       .sort((a, b) => b.createdAt - a.createdAt)
@@ -413,35 +478,37 @@
       .replaceAll("'", "&#039;");
   }
 
-  listEl.addEventListener("click", (e) => {
-    const btn = e.target.closest("button[data-action]");
-    if (!btn) return;
-    const id = btn.getAttribute("data-id");
-    const action = btn.getAttribute("data-action");
-    switch (action) {
-      case "view":
-        viewOnMap(id);
-        break;
-      case "dispatch":
-        updateStatus(id, "Dispatched");
-        break;
-      case "resolve":
-        updateStatus(id, "Resolved");
-        break;
-      case "cancel":
-        updateStatus(id, "Cancelled");
-        break;
-      case "delete":
-        deleteIncident(id);
-        break;
-      case "download":
-        downloadPhoto(id);
-        break;
-      case "copy":
-        copyIncident(id);
-        break;
-    }
-  });
+  if (listEl) {
+    listEl.addEventListener("click", (e) => {
+      const btn = e.target.closest("button[data-action]");
+      if (!btn) return;
+      const id = btn.getAttribute("data-id");
+      const action = btn.getAttribute("data-action");
+      switch (action) {
+        case "view":
+          viewOnMap(id);
+          break;
+        case "dispatch":
+          updateStatus(id, "Dispatched");
+          break;
+        case "resolve":
+          updateStatus(id, "Resolved");
+          break;
+        case "cancel":
+          updateStatus(id, "Cancelled");
+          break;
+        case "delete":
+          deleteIncident(id);
+          break;
+        case "download":
+          downloadPhoto(id);
+          break;
+        case "copy":
+          copyIncident(id);
+          break;
+      }
+    });
+  }
 
   function viewOnMap(id) {
     const inc = incidents.find((x) => x.id === id);
@@ -500,7 +567,9 @@
     }
   }
 
-  filterStatus.addEventListener("change", renderList);
+  if (filterStatus) {
+    filterStatus.addEventListener("change", renderList);
+  }
 
   // Add event listener for image clicks
   document.addEventListener("click", (e) => {
@@ -554,30 +623,32 @@
     });
   }
 
-  form.addEventListener("submit", async (e) => {
-    e.preventDefault();
-    if (!form.checkValidity()) {
-      form.classList.add("was-validated");
-      return;
-    }
-    try {
-      const inc = await serializeFormToIncident();
-      incidents.push(inc);
-      saveIncidents();
-      form.reset();
-      photoPreview.classList.add("d-none");
-      photoPlaceholder.classList.remove("d-none");
-      clearLocation();
-      form.classList.remove("was-validated");
-      renderList();
-      window.scrollTo({ top: 0, behavior: "smooth" });
+  if (form) {
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (!form.checkValidity()) {
+        form.classList.add("was-validated");
+        return;
+      }
+      try {
+        const inc = await serializeFormToIncident();
+        incidents.push(inc);
+        saveIncidents();
+        form.reset();
+        if (photoPreview) photoPreview.classList.add("d-none");
+        if (photoPlaceholder) photoPlaceholder.classList.remove("d-none");
+        clearLocation();
+        form.classList.remove("was-validated");
+        renderList();
+        window.scrollTo({ top: 0, behavior: "smooth" });
 
-      // Dispatch custom event for real-time updates
-      window.dispatchEvent(new CustomEvent("incidentAdded"));
-    } catch (err) {
-      alert(err.message || "Failed to add incident");
-    }
-  });
+        // Dispatch custom event for real-time updates
+        window.dispatchEvent(new CustomEvent("incidentAdded"));
+      } catch (err) {
+        alert(err.message || "Failed to add incident");
+      }
+    });
+  }
 
   const btnResetForm = $("#btnResetForm");
   if (btnResetForm) {
@@ -619,6 +690,24 @@ document.addEventListener("DOMContentLoaded", function () {
         const navLink = nav.querySelector(".nav-link.dropdown-toggle");
         if (navLink) {
           dropdownToggles.push(navLink);
+        }
+      }
+    }
+  }
+
+  // Additional fallback: try finding dropdown using the specific path #mainContent > nav > div > div > div > ul
+  if (dropdownToggles.length === 0) {
+    const dropdownMenu = document.querySelector(
+      "#mainContent > nav > div > div > div > ul"
+    );
+    if (dropdownMenu) {
+      const dropdownContainer =
+        dropdownMenu.closest(".dropdown") ||
+        dropdownMenu.closest(".nav-item.dropdown");
+      if (dropdownContainer) {
+        const toggle = dropdownContainer.querySelector(".dropdown-toggle");
+        if (toggle) {
+          dropdownToggles.push(toggle);
         }
       }
     }
@@ -684,6 +773,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Toggle sidebar
   function toggleSidebar() {
+    if (!sidebar || !mainContent) return;
     sidebar.classList.toggle("collapsed");
     mainContent.classList.toggle("expanded");
 
@@ -692,47 +782,51 @@ document.addEventListener("DOMContentLoaded", function () {
     localStorage.setItem("sidebarCollapsed", isCollapsed);
 
     if (isCollapsed) {
-      brandText.style.display = "none";
-      navTitle.style.display = "none";
+      if (brandText) brandText.style.display = "none";
+      if (navTitle) navTitle.style.display = "none";
     } else {
-      brandText.style.display = "inline";
-      navTitle.style.display = "block";
+      if (brandText) brandText.style.display = "inline";
+      if (navTitle) navTitle.style.display = "block";
     }
   }
 
   // Initialize sidebar state from localStorage
   function initializeSidebarState() {
+    if (!sidebar || !mainContent) return;
     const isCollapsed = localStorage.getItem("sidebarCollapsed") === "true";
     if (isCollapsed) {
       sidebar.classList.add("collapsed");
       mainContent.classList.add("expanded");
-      brandText.style.display = "none";
-      navTitle.style.display = "none";
+      if (brandText) brandText.style.display = "none";
+      if (navTitle) navTitle.style.display = "none";
     } else {
       // Default to expanded state
       sidebar.classList.remove("collapsed");
       mainContent.classList.remove("expanded");
-      brandText.style.display = "inline";
-      navTitle.style.display = "block";
+      if (brandText) brandText.style.display = "inline";
+      if (navTitle) navTitle.style.display = "block";
     }
   }
 
   // Mobile menu toggle
   function toggleMobileMenu() {
+    if (!sidebar || !sidebarOverlay) return;
     sidebar.classList.toggle("show");
     sidebarOverlay.classList.toggle("show");
   }
 
   // Event listeners
-  sidebarToggle.addEventListener("click", toggleSidebar);
-  mobileMenuToggle.addEventListener("click", toggleMobileMenu);
-  sidebarOverlay.addEventListener("click", toggleMobileMenu);
+  if (sidebarToggle) sidebarToggle.addEventListener("click", toggleSidebar);
+  if (mobileMenuToggle)
+    mobileMenuToggle.addEventListener("click", toggleMobileMenu);
+  if (sidebarOverlay)
+    sidebarOverlay.addEventListener("click", toggleMobileMenu);
 
   // Close mobile menu on window resize
   window.addEventListener("resize", function () {
     if (window.innerWidth > 768) {
-      sidebar.classList.remove("show");
-      sidebarOverlay.classList.remove("show");
+      if (sidebar) sidebar.classList.remove("show");
+      if (sidebarOverlay) sidebarOverlay.classList.remove("show");
     }
   });
 

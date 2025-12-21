@@ -315,7 +315,7 @@ if (isset($_GET['logout'])) {
       crossorigin="anonymous"
     ></script>
 
-    <script src="scripts/dashboard.js"></script>
+    <script src="scripts/dashboard.js?v=<?php echo urlencode((string) @filemtime(__DIR__ . '/scripts/dashboard.js')); ?>"></script>
     <script>
       document.addEventListener('DOMContentLoaded', function () {
         document.querySelectorAll('.sidebar .nav-item').forEach(function (item) {
