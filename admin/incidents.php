@@ -1,12 +1,12 @@
 <?php
 define('SECURE_ACCESS', true);
-require_once 'auth.php';
+require_once '../auth.php';
 
 // Check if user is logged in and is admin
 checkLogin();
 
 if (getUserRole() !== 'admin') {
-    header('Location: client-dashboard.php');
+    header('Location: ../client-dashboard.php');
     exit();
 }
 
@@ -20,11 +20,11 @@ if (isset($_GET['logout'])) {
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Admin Dashboard | MDRRMO Incident Reporting</title>
+    <title>Incidents | MDRRMO Incident Reporting</title>
 
     <!-- Tab Icon / Favicon -->
-    <link rel="icon" type="image/png" href="assets/icon.png" />
-    <link rel="shortcut icon" type="image/png" href="assets/icon.png" />
+    <link rel="icon" type="image/png" href="../assets/icon.png" />
+    <link rel="shortcut icon" type="image/png" href="../assets/icon.png" />
 
     <!-- Bootstrap CSS -->
     <link
@@ -40,7 +40,7 @@ if (isset($_GET['logout'])) {
       href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"
     />
 
-    <link rel="stylesheet" href="styles/dashboard.css" />
+    <link rel="stylesheet" href="../styles/dashboard.css" />
     <!-- Flaticon UIcons -->
     <link rel='stylesheet' href='https://cdn-uicons.flaticon.com/3.0.0/uicons-solid-rounded/css/uicons-solid-rounded.css'>
     <link rel='stylesheet' href='https://cdn-uicons.flaticon.com/3.0.0/uicons-regular-rounded/css/uicons-regular-rounded.css'>
@@ -55,7 +55,7 @@ if (isset($_GET['logout'])) {
     <div class="sidebar" id="sidebar">
       <div class="sidebar-header">
         <div class="sidebar-brand">
-          <img src="assets/icon.png" alt="MDRRMO Logo" style="max-width: 32px; height: auto; margin-right: 0.5rem;" />
+          <img src="../assets/icon.png" alt="MDRRMO Logo" style="max-width: 32px; height: auto; margin-right: 0.5rem;" />
           <span id="brandText">MDRRMO Admin</span>
         </div>
         <button class="sidebar-toggle" id="sidebarToggle">
@@ -67,21 +67,21 @@ if (isset($_GET['logout'])) {
         <div class="nav-section">
           <div class="nav-section-title" id="navTitle">Navigation</div>
           
-          <a href="admin-dashboard.php" class="nav-item active">
+          <a href="../admin-dashboard.php" class="nav-item">
             <div class="nav-icon">
               <i data-filled="fi fi-sr-apps" data-unfilled="fi fi-rr-apps"></i>
             </div>
             <div class="nav-text">Dashboard</div>
           </a>
           
-          <a href="admin/organization-chart.php" class="nav-item">
+          <a href="organization-chart.php" class="nav-item">
             <div class="nav-icon">
               <i data-filled="fi fi-sr-sitemap" data-unfilled="fi fi-rr-sitemap"></i>
             </div>
             <div class="nav-text">Organization Chart</div>
           </a>
           
-          <a href="admin/incidents.php" class="nav-item" id="incidentsLink">
+          <a href="incidents.php" class="nav-item active" id="incidentsLink">
             <div class="nav-icon">
               <i data-filled="fi fi-sr-light-emergency-on" data-unfilled="fi fi-rr-light-emergency-on"></i>
             </div>
@@ -89,21 +89,21 @@ if (isset($_GET['logout'])) {
             <div class="nav-badge warning" id="incidentCount">0</div>
           </a>
           
-          <a href="admin/equipment.php" class="nav-item">
+          <a href="equipment.php" class="nav-item">
             <div class="nav-icon">
               <i data-filled="fi fi-sr-box" data-unfilled="fi fi-rr-box"></i>
             </div>
             <div class="nav-text">Equipment</div>
           </a>
           
-          <a href="admin/activities.php" class="nav-item">
+          <a href="activities.php" class="nav-item">
             <div class="nav-icon">
               <i data-filled="fi fi-sr-calendar-check" data-unfilled="fi fi-rr-calendar-check"></i>
             </div>
             <div class="nav-text">Activities</div>
           </a>
           
-          <a href="admin/users.php" class="nav-item">
+          <a href="users.php" class="nav-item">
             <div class="nav-icon">
               <i data-filled="fi fi-sr-users" data-unfilled="fi fi-br-users"></i>
             </div>
@@ -134,7 +134,7 @@ if (isset($_GET['logout'])) {
                 <li><a class="dropdown-item" href="#"><i class="bi bi-person me-2"></i>Profile</a></li>
                 <li><a class="dropdown-item" href="#"><i class="bi bi-gear me-2"></i>Settings</a></li>
                 <li><hr class="dropdown-divider"></li>
-                <li><a class="dropdown-item" href="logout.php"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
+                <li><a class="dropdown-item" href="../logout.php"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
               </ul>
             </div>
           </div>
@@ -147,106 +147,30 @@ if (isset($_GET['logout'])) {
           <div class="col-12">
             <div class="d-flex justify-content-between align-items-center">
               <div>
-                <h1 class="h3 mb-1">Admin Dashboard</h1>
-                <p class="text-muted mb-0">Welcome back, <?php echo htmlspecialchars(getCurrentUser()); ?>! Manage incidents and system.</p>
+                <h1 class="h3 mb-1">Incidents Management</h1>
+                <p class="text-muted mb-0">Manage and monitor all incident reports</p>
               </div>
               <div class="d-flex gap-2">
                 <button class="btn btn-outline-secondary" id="btnRefresh">
                   <i class="bi bi-arrow-clockwise"></i> Refresh
                 </button>
-                <a href="users.php" class="btn btn-primary">
-                  <i class="bi bi-people"></i> Manage Users
-                </a>
-                <a href="admin/incidents.php" class="btn btn-success">
-                  <i class="bi bi-list-check"></i> Manage Incidents
+                <a href="../incidents.php" class="btn btn-primary">
+                  <i class="bi bi-plus-circle"></i> Create New Incident
                 </a>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Stats Cards -->
-        <div class="row mb-4">
-          <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card border-0 shadow-sm">
-              <div class="card-body">
-                <div class="d-flex align-items-center">
-                  <div class="flex-shrink-0">
-                    <div class="bg-primary bg-opacity-10 p-3 rounded">
-                      <i class="bi bi-flag text-primary fs-4"></i>
-                    </div>
-                  </div>
-                  <div class="flex-grow-1 ms-3">
-                    <h6 class="card-title text-muted mb-1">Total Incidents</h6>
-                    <h4 class="mb-0" id="totalIncidents">0</h4>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card border-0 shadow-sm">
-              <div class="card-body">
-                <div class="d-flex align-items-center">
-                  <div class="flex-shrink-0">
-                    <div class="bg-warning bg-opacity-10 p-3 rounded">
-                      <i class="bi bi-exclamation-triangle text-warning fs-4"></i>
-                    </div>
-                  </div>
-                  <div class="flex-grow-1 ms-3">
-                    <h6 class="card-title text-muted mb-1">New Incidents</h6>
-                    <h4 class="mb-0" id="newIncidents">0</h4>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card border-0 shadow-sm">
-              <div class="card-body">
-                <div class="d-flex align-items-center">
-                  <div class="flex-shrink-0">
-                    <div class="bg-success bg-opacity-10 p-3 rounded">
-                      <i class="bi bi-check-circle text-success fs-4"></i>
-                    </div>
-                  </div>
-                  <div class="flex-grow-1 ms-3">
-                    <h6 class="card-title text-muted mb-1">Resolved</h6>
-                    <h4 class="mb-0" id="resolvedIncidents">0</h4>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <div class="col-xl-3 col-md-6 mb-3">
-            <div class="card border-0 shadow-sm">
-              <div class="card-body">
-                <div class="d-flex align-items-center">
-                  <div class="flex-shrink-0">
-                    <div class="bg-info bg-opacity-10 p-3 rounded">
-                      <i class="bi bi-people text-info fs-4"></i>
-                    </div>
-                  </div>
-                  <div class="flex-grow-1 ms-3">
-                    <h6 class="card-title text-muted mb-1">Active Users</h6>
-                    <h4 class="mb-0" id="activeUsers">0</h4>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="row g-4">
-          <!-- Incidents List -->
-          <div class="col-12 col-lg-8">
+        <!-- Incidents Content -->
+        <div class="row">
+          <div class="col-12">
             <div class="card border-0 shadow-sm">
               <div class="card-header bg-white border-0">
-                <div class="d-flex justify-content-between align-items-center">
-                  <h5 class="mb-0">Recent Incidents</h5>
+                <div class="d-flex align-items-center justify-content-between">
+                  <h5 class="mb-0 d-flex align-items-center gap-2">
+                    <i class="bi bi-flag text-primary"></i> All Incidents
+                  </h5>
                   <div class="d-flex gap-2">
                     <select id="filterStatus" class="form-select form-select-sm" style="width: 150px">
                       <option value="All" selected>All statuses</option>
@@ -255,56 +179,14 @@ if (isset($_GET['logout'])) {
                       <option value="Resolved">Resolved</option>
                       <option value="Cancelled">Cancelled</option>
                     </select>
-                    <button class="btn btn-sm btn-outline-success" id="btnExportAll">
-                      <i class="bi bi-download"></i> Export
-                    </button>
-                    <button class="btn btn-sm btn-outline-danger" id="btnClearAll">
-                      <i class="bi bi-trash"></i> Clear All
-                    </button>
                   </div>
                 </div>
               </div>
               <div class="card-body">
-                <div id="incidentList" class="d-grid gap-3"></div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Quick Actions -->
-          <div class="col-12 col-lg-4">
-            <div class="card border-0 shadow-sm">
-              <div class="card-header bg-white border-0">
-                <h5 class="mb-0 d-flex align-items-center gap-2">
-                  <i class="bi bi-lightning-charge text-primary"></i> Quick Actions
-                </h5>
-              </div>
-              <div class="card-body">
-                <div class="d-grid gap-2">
-                  <a href="admin/incidents.php" class="btn btn-primary">
-                    <i class="bi bi-list-check me-2"></i> Manage All Incidents
-                  </a>
-                  <a href="users.php" class="btn btn-outline-primary">
-                    <i class="bi bi-people me-2"></i> Manage Users
-                  </a>
-                  <a href="map-view.php" class="btn btn-outline-info">
-                    <i class="bi bi-map me-2"></i> View Map
-                  </a>
-                  <hr>
-                  <h6 class="text-muted mb-2">System Overview</h6>
-                  <div class="small text-muted">
-                    <div class="d-flex justify-content-between mb-1">
-                      <span>Total Incidents:</span>
-                      <strong id="quickTotalIncidents">0</strong>
-                    </div>
-                    <div class="d-flex justify-content-between mb-1">
-                      <span>Pending Actions:</span>
-                      <strong id="quickPendingActions">0</strong>
-                    </div>
-                    <div class="d-flex justify-content-between">
-                      <span>Active Users:</span>
-                      <strong id="quickActiveUsers">0</strong>
-                    </div>
-                  </div>
+                <div class="text-center py-5">
+                  <i class="bi bi-flag fs-1 text-muted d-block mb-3"></i>
+                  <p class="text-muted">Incident management interface will be displayed here.</p>
+                  <p class="text-muted small">This feature is under development.</p>
                 </div>
               </div>
             </div>
@@ -326,7 +208,7 @@ if (isset($_GET['logout'])) {
       crossorigin="anonymous"
     ></script>
 
-    <script src="scripts/dashboard.js?v=<?php echo urlencode((string) @filemtime(__DIR__ . '/scripts/dashboard.js')); ?>"></script>
+    <script src="../scripts/dashboard.js?v=<?php echo urlencode((string) @filemtime(__DIR__ . '/../scripts/dashboard.js')); ?>"></script>
     <script>
       document.addEventListener('DOMContentLoaded', function () {
         document.querySelectorAll('.sidebar .nav-item').forEach(function (item) {
