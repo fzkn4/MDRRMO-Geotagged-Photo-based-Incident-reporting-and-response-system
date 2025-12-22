@@ -24,7 +24,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'email' => $_POST['email'] ?? '',
             'organization' => $_POST['organization'] ?? '',
             'phone' => $_POST['phone'] ?? '',
-            'status' => $_POST['status'] ?? 'active'
+            'status' => $_POST['status'] ?? 'approved',
+            'role' => $_POST['role'] ?? 'client'
         ];
         
         if (updateUser($user_id, $update_data)) {
@@ -32,7 +33,83 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } else {
             $error_message = 'Failed to update user.';
         }
+    } elseif ($action === 'create') {
+        $username = trim($_POST['username'] ?? '');
+        $email = trim($_POST['email'] ?? '');
+        $password = $_POST['password'] ?? '';
+        $confirm_password = $_POST['confirm_password'] ?? '';
+        $full_name = trim($_POST['full_name'] ?? '');
+        $role = $_POST['role'] ?? 'client';
+        $organization = trim($_POST['organization'] ?? '');
+        $phone = trim($_POST['phone'] ?? '');
+        
+        $errors = [];
+        
+        if (empty($username)) {
+            $errors[] = 'Username is required.';
+        } elseif (strlen($username) < 3) {
+            $errors[] = 'Username must be at least 3 characters long.';
+        } elseif (!preg_match('/^[a-zA-Z0-9_]+$/', $username)) {
+            $errors[] = 'Username can only contain letters, numbers, and underscores.';
+        } elseif (userExists($username)) {
+            $errors[] = 'Username already exists.';
+        }
+        
+        if (empty($email)) {
+            $errors[] = 'Email is required.';
+        } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $errors[] = 'Please enter a valid email address.';
+        } elseif (emailExists($email)) {
+            $errors[] = 'Email already exists.';
+        }
+        
+        if (empty($password)) {
+            $errors[] = 'Password is required.';
+        } elseif (strlen($password) < 6) {
+            $errors[] = 'Password must be at least 6 characters long.';
+        }
+        
+        if ($password !== $confirm_password) {
+            $errors[] = 'Passwords do not match.';
+        }
+        
+        if (empty($full_name)) {
+            $errors[] = 'Full name is required.';
+        }
+        
+        if (empty($organization)) {
+            $errors[] = 'Organization is required.';
+        }
+        
+        if (empty($errors)) {
+            $user_data = [
+                'username' => $username,
+                'email' => $email,
+                'password' => password_hash($password, PASSWORD_DEFAULT),
+                'full_name' => $full_name,
+                'role' => $role,
+                'organization' => $organization,
+                'phone' => $phone,
+                'status' => 'approved' // Admin-created accounts are auto-approved
+            ];
+            
+            if (createUser($user_data)) {
+                $success_message = 'User "' . htmlspecialchars($username) . '" created successfully and is ready to use.';
+                // Redirect to prevent form resubmission
+                header('Location: users.php?success=1&user=' . urlencode($username));
+                exit();
+            } else {
+                $error_message = 'Failed to create user. Please try again.';
+            }
+        } else {
+            $error_message = implode('<br>', $errors);
+        }
     }
+}
+
+// Handle success message from redirect
+if (isset($_GET['success']) && $_GET['success'] == '1' && isset($_GET['user'])) {
+    $success_message = 'User "' . htmlspecialchars($_GET['user']) . '" created successfully and is ready to use.';
 }
 
 $users = getAllUsers();
@@ -176,10 +253,10 @@ $users = getAllUsers();
                 <a href="../admin-dashboard.php" class="btn btn-outline-secondary">
                   <i class="bi bi-arrow-left"></i> Back to Dashboard
                 </a>
-                <a href="../signup.php" class="btn btn-success">
+                <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#createUserModal">
                   <i class="bi bi-person-plus me-1"></i>
                   Add New User
-                </a>
+                </button>
               </div>
             </div>
           </div>
@@ -256,8 +333,19 @@ $users = getAllUsers();
                           </td>
                           <td><?php echo htmlspecialchars($user['organization'] ?? ''); ?></td>
                           <td>
-                            <span class="badge bg-<?php echo ($user['status'] ?? 'active') === 'active' ? 'success' : 'secondary'; ?>">
-                              <?php echo ucfirst($user['status'] ?? 'active'); ?>
+                            <?php 
+                            $status = $user['status'] ?? 'pending';
+                            $statusClass = 'secondary';
+                            if ($status === 'approved' || $status === 'active') {
+                                $statusClass = 'success';
+                            } elseif ($status === 'pending') {
+                                $statusClass = 'warning';
+                            } elseif ($status === 'inactive') {
+                                $statusClass = 'danger';
+                            }
+                            ?>
+                            <span class="badge bg-<?php echo $statusClass; ?>">
+                              <?php echo ucfirst($status); ?>
                             </span>
                           </td>
                           <td>
@@ -332,8 +420,18 @@ $users = getAllUsers();
                 <div class="mb-3">
                   <label class="form-label">Status</label>
                   <select class="form-select" name="status">
-                    <option value="active" <?php echo ($user['status'] ?? 'active') === 'active' ? 'selected' : ''; ?>>Active</option>
-                    <option value="inactive" <?php echo ($user['status'] ?? 'active') === 'inactive' ? 'selected' : ''; ?>>Inactive</option>
+                    <option value="pending" <?php echo ($user['status'] ?? 'pending') === 'pending' ? 'selected' : ''; ?>>Pending</option>
+                    <option value="approved" <?php echo ($user['status'] ?? 'pending') === 'approved' ? 'selected' : ''; ?>>Approved</option>
+                    <option value="active" <?php echo ($user['status'] ?? 'pending') === 'active' ? 'selected' : ''; ?>>Active</option>
+                    <option value="inactive" <?php echo ($user['status'] ?? 'pending') === 'inactive' ? 'selected' : ''; ?>>Inactive</option>
+                  </select>
+                </div>
+                
+                <div class="mb-3">
+                  <label class="form-label">Role</label>
+                  <select class="form-select" name="role">
+                    <option value="client" <?php echo ($user['role'] ?? 'client') === 'client' ? 'selected' : ''; ?>>Client</option>
+                    <option value="admin" <?php echo ($user['role'] ?? 'client') === 'admin' ? 'selected' : ''; ?>>Admin</option>
                   </select>
                 </div>
               </div>
@@ -371,6 +469,75 @@ $users = getAllUsers();
       </div>
     <?php endforeach; ?>
 
+    <!-- Create User Modal -->
+    <div class="modal fade" id="createUserModal" tabindex="-1">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Create New User</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <form method="POST" id="createUserForm" class="needs-validation" novalidate>
+            <div class="modal-body">
+              <input type="hidden" name="action" value="create">
+              
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label">Username <span class="text-danger">*</span></label>
+                  <input type="text" class="form-control" name="username" required minlength="3" pattern="[a-zA-Z0-9_]+" title="Username can only contain letters, numbers, and underscores">
+                  <small class="text-muted">3+ characters, letters, numbers, and underscores only</small>
+                </div>
+                
+                <div class="col-md-6">
+                  <label class="form-label">Email <span class="text-danger">*</span></label>
+                  <input type="email" class="form-control" name="email" required>
+                </div>
+                
+                <div class="col-12">
+                  <label class="form-label">Full Name <span class="text-danger">*</span></label>
+                  <input type="text" class="form-control" name="full_name" required>
+                </div>
+                
+                <div class="col-md-6">
+                  <label class="form-label">Role <span class="text-danger">*</span></label>
+                  <select class="form-select" name="role" required>
+                    <option value="client" selected>Client</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                </div>
+                
+                <div class="col-md-6">
+                  <label class="form-label">Organization <span class="text-danger">*</span></label>
+                  <input type="text" class="form-control" name="organization" required>
+                </div>
+                
+                <div class="col-12">
+                  <label class="form-label">Phone</label>
+                  <input type="tel" class="form-control" name="phone">
+                </div>
+                
+                <div class="col-md-6">
+                  <label class="form-label">Password <span class="text-danger">*</span></label>
+                  <input type="password" class="form-control" name="password" id="createPassword" required minlength="6">
+                  <small class="text-muted">Minimum 6 characters</small>
+                </div>
+                
+                <div class="col-md-6">
+                  <label class="form-label">Confirm Password <span class="text-danger">*</span></label>
+                  <input type="password" class="form-control" name="confirm_password" id="createConfirmPassword" required minlength="6">
+                  <small class="text-muted" id="passwordMatch"></small>
+                </div>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+              <button type="submit" class="btn btn-success">Create User</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
     <!-- Bootstrap JS -->
     <script
       src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
@@ -389,6 +556,67 @@ $users = getAllUsers();
           if (!filled || !unfilled) return;
           icon.className = item.classList.contains('active') ? filled : unfilled;
         });
+
+        // Create User Modal - Password confirmation validation
+        const createUserModal = document.getElementById('createUserModal');
+        if (createUserModal) {
+          const passwordInput = document.getElementById('createPassword');
+          const confirmPasswordInput = document.getElementById('createConfirmPassword');
+          const passwordMatch = document.getElementById('passwordMatch');
+          
+          if (passwordInput && confirmPasswordInput) {
+            function validatePasswordMatch() {
+              if (confirmPasswordInput.value && passwordInput.value) {
+                if (passwordInput.value === confirmPasswordInput.value) {
+                  confirmPasswordInput.setCustomValidity('');
+                  if (passwordMatch) {
+                    passwordMatch.textContent = 'Passwords match';
+                    passwordMatch.className = 'text-success';
+                  }
+                } else {
+                  confirmPasswordInput.setCustomValidity('Passwords do not match');
+                  if (passwordMatch) {
+                    passwordMatch.textContent = 'Passwords do not match';
+                    passwordMatch.className = 'text-danger';
+                  }
+                }
+              } else {
+                confirmPasswordInput.setCustomValidity('');
+                if (passwordMatch) {
+                  passwordMatch.textContent = '';
+                }
+              }
+            }
+            
+            passwordInput.addEventListener('input', validatePasswordMatch);
+            confirmPasswordInput.addEventListener('input', validatePasswordMatch);
+          }
+
+          // Reset form when modal is closed
+          createUserModal.addEventListener('hidden.bs.modal', function () {
+            const form = document.getElementById('createUserForm');
+            if (form) {
+              form.reset();
+              form.classList.remove('was-validated');
+              if (passwordMatch) {
+                passwordMatch.textContent = '';
+                passwordMatch.className = 'text-muted';
+              }
+            }
+          });
+
+          // Form validation
+          const createUserForm = document.getElementById('createUserForm');
+          if (createUserForm) {
+            createUserForm.addEventListener('submit', function (event) {
+              if (!createUserForm.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+              }
+              createUserForm.classList.add('was-validated');
+            }, false);
+          }
+        }
       });
     </script>
   </body>

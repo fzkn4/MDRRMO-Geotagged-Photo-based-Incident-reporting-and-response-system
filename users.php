@@ -64,6 +64,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $errors[] = 'Username is required.';
         } elseif (strlen($username) < 3) {
             $errors[] = 'Username must be at least 3 characters long.';
+        } elseif (!preg_match('/^[a-zA-Z0-9_]+$/', $username)) {
+            $errors[] = 'Username can only contain letters, numbers, and underscores.';
         } elseif (userExists($username)) {
             $errors[] = 'Username already exists.';
         }
@@ -107,7 +109,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ];
             
             if (createUser($user_data)) {
-                $success_message = 'User created successfully.';
+                $success_message = 'User "' . htmlspecialchars($username) . '" created successfully and is ready to use.';
+                // Redirect to prevent form resubmission
+                header('Location: users.php?success=1&user=' . urlencode($username));
+                exit();
             } else {
                 $error_message = 'Failed to create user. Please try again.';
             }
@@ -118,6 +123,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 $users = getAllUsers();
+
+// Handle success message from redirect
+if (isset($_GET['success']) && $_GET['success'] == '1' && isset($_GET['user'])) {
+    $success_message = 'User "' . htmlspecialchars($_GET['user']) . '" created successfully and is ready to use.';
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -542,14 +552,15 @@ $users = getAllUsers();
             <h5 class="modal-title">Create New User</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
           </div>
-          <form method="POST">
+          <form method="POST" id="createUserForm" class="needs-validation" novalidate>
             <div class="modal-body">
               <input type="hidden" name="action" value="create">
               
               <div class="row g-3">
                 <div class="col-md-6">
                   <label class="form-label">Username <span class="text-danger">*</span></label>
-                  <input type="text" class="form-control" name="username" required>
+                  <input type="text" class="form-control" name="username" required minlength="3" pattern="[a-zA-Z0-9_]+" title="Username can only contain letters, numbers, and underscores">
+                  <small class="text-muted">3+ characters, letters, numbers, and underscores only</small>
                 </div>
                 
                 <div class="col-md-6">
@@ -588,7 +599,8 @@ $users = getAllUsers();
                 
                 <div class="col-md-6">
                   <label class="form-label">Confirm Password <span class="text-danger">*</span></label>
-                  <input type="password" class="form-control" name="confirm_password" required minlength="6">
+                  <input type="password" class="form-control" name="confirm_password" id="confirm_password" required minlength="6">
+                  <small class="text-muted" id="passwordMatch"></small>
                 </div>
               </div>
             </div>
@@ -619,6 +631,67 @@ $users = getAllUsers();
           if (!filled || !unfilled) return;
           icon.className = item.classList.contains('active') ? filled : unfilled;
         });
+
+        // Create User Modal - Password confirmation validation
+        const createUserModal = document.getElementById('createUserModal');
+        if (createUserModal) {
+          const passwordInput = createUserModal.querySelector('input[name="password"]');
+          const confirmPasswordInput = createUserModal.querySelector('input[name="confirm_password"]');
+          const passwordMatch = document.getElementById('passwordMatch');
+          
+          if (passwordInput && confirmPasswordInput) {
+            function validatePasswordMatch() {
+              if (confirmPasswordInput.value && passwordInput.value) {
+                if (passwordInput.value === confirmPasswordInput.value) {
+                  confirmPasswordInput.setCustomValidity('');
+                  if (passwordMatch) {
+                    passwordMatch.textContent = 'Passwords match';
+                    passwordMatch.className = 'text-success';
+                  }
+                } else {
+                  confirmPasswordInput.setCustomValidity('Passwords do not match');
+                  if (passwordMatch) {
+                    passwordMatch.textContent = 'Passwords do not match';
+                    passwordMatch.className = 'text-danger';
+                  }
+                }
+              } else {
+                confirmPasswordInput.setCustomValidity('');
+                if (passwordMatch) {
+                  passwordMatch.textContent = '';
+                }
+              }
+            }
+            
+            passwordInput.addEventListener('input', validatePasswordMatch);
+            confirmPasswordInput.addEventListener('input', validatePasswordMatch);
+          }
+
+          // Reset form when modal is closed
+          createUserModal.addEventListener('hidden.bs.modal', function () {
+            const form = document.getElementById('createUserForm');
+            if (form) {
+              form.reset();
+              form.classList.remove('was-validated');
+              if (passwordMatch) {
+                passwordMatch.textContent = '';
+                passwordMatch.className = 'text-muted';
+              }
+            }
+          });
+
+          // Form validation
+          const createUserForm = document.getElementById('createUserForm');
+          if (createUserForm) {
+            createUserForm.addEventListener('submit', function (event) {
+              if (!createUserForm.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+              }
+              createUserForm.classList.add('was-validated');
+            }, false);
+          }
+        }
       });
     </script>
   </body>
