@@ -39,7 +39,7 @@ services:
       MYSQL_USER: geotagged_user
       MYSQL_PASSWORD: geotagged_password
     volumes:
-      - mysql_data:/var/lib/mysql
+      - ./data/mysql:/var/lib/mysql
       - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     restart: unless-stopped
     healthcheck:
@@ -47,5 +47,3 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
-volumes:
-  mysql_data:

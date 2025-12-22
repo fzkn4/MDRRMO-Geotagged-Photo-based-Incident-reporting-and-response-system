@@ -16,21 +16,103 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $user_id = $_POST['user_id'] ?? '';
     
     if ($action === 'delete' && $user_id) {
-        deleteUser($user_id);
-        $success_message = 'User deleted successfully.';
+        if (deleteUser($user_id)) {
+            $success_message = 'User deleted successfully.';
+        } else {
+            $error_message = 'Failed to delete user.';
+        }
     } elseif ($action === 'update' && $user_id) {
         $update_data = [
             'full_name' => $_POST['full_name'] ?? '',
             'email' => $_POST['email'] ?? '',
             'organization' => $_POST['organization'] ?? '',
             'phone' => $_POST['phone'] ?? '',
-            'status' => $_POST['status'] ?? 'active'
+            'status' => $_POST['status'] ?? 'approved',
+            'role' => $_POST['role'] ?? 'client'
         ];
         
         if (updateUser($user_id, $update_data)) {
             $success_message = 'User updated successfully.';
         } else {
             $error_message = 'Failed to update user.';
+        }
+    } elseif ($action === 'approve' && $user_id) {
+        if (approveUser($user_id)) {
+            $success_message = 'User approved successfully.';
+        } else {
+            $error_message = 'Failed to approve user.';
+        }
+    } elseif ($action === 'reject' && $user_id) {
+        if (rejectUser($user_id)) {
+            $success_message = 'User rejected successfully.';
+        } else {
+            $error_message = 'Failed to reject user.';
+        }
+    } elseif ($action === 'create') {
+        $username = trim($_POST['username'] ?? '');
+        $email = trim($_POST['email'] ?? '');
+        $password = $_POST['password'] ?? '';
+        $confirm_password = $_POST['confirm_password'] ?? '';
+        $full_name = trim($_POST['full_name'] ?? '');
+        $role = $_POST['role'] ?? 'client';
+        $organization = trim($_POST['organization'] ?? '');
+        $phone = trim($_POST['phone'] ?? '');
+        
+        $errors = [];
+        
+        if (empty($username)) {
+            $errors[] = 'Username is required.';
+        } elseif (strlen($username) < 3) {
+            $errors[] = 'Username must be at least 3 characters long.';
+        } elseif (userExists($username)) {
+            $errors[] = 'Username already exists.';
+        }
+        
+        if (empty($email)) {
+            $errors[] = 'Email is required.';
+        } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $errors[] = 'Please enter a valid email address.';
+        } elseif (emailExists($email)) {
+            $errors[] = 'Email already exists.';
+        }
+        
+        if (empty($password)) {
+            $errors[] = 'Password is required.';
+        } elseif (strlen($password) < 6) {
+            $errors[] = 'Password must be at least 6 characters long.';
+        }
+        
+        if ($password !== $confirm_password) {
+            $errors[] = 'Passwords do not match.';
+        }
+        
+        if (empty($full_name)) {
+            $errors[] = 'Full name is required.';
+        }
+        
+        if (empty($organization)) {
+            $errors[] = 'Organization is required.';
+        }
+        
+        if (empty($errors)) {
+            $user_data = [
+                'username' => $username,
+                'email' => $email,
+                'password' => password_hash($password, PASSWORD_DEFAULT),
+                'full_name' => $full_name,
+                'role' => $role,
+                'organization' => $organization,
+                'phone' => $phone,
+                'status' => 'approved' // Admin-created accounts are auto-approved
+            ];
+            
+            if (createUser($user_data)) {
+                $success_message = 'User created successfully.';
+            } else {
+                $error_message = 'Failed to create user. Please try again.';
+            }
+        } else {
+            $error_message = implode('<br>', $errors);
         }
     }
 }
@@ -172,10 +254,10 @@ $users = getAllUsers();
                 <a href="index.php" class="btn btn-outline-secondary">
                   <i class="bi bi-arrow-left"></i> Back to Dashboard
                 </a>
-                <a href="signup.php" class="btn btn-success">
+                <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#createUserModal">
                   <i class="bi bi-person-plus me-1"></i>
                   Add New User
-                </a>
+                </button>
               </div>
             </div>
           </div>
@@ -233,7 +315,7 @@ $users = getAllUsers();
                       <tr>
                         <td colspan="9" class="text-center text-muted py-4">
                           <i class="bi bi-people fs-1 d-block mb-2"></i>
-                          No users found. <a href="signup.php">Create the first user</a>
+                          No users found. <button type="button" class="btn btn-link p-0 text-decoration-none" data-bs-toggle="modal" data-bs-target="#createUserModal">Create the first user</button>
                         </td>
                       </tr>
                     <?php else: ?>
@@ -252,8 +334,19 @@ $users = getAllUsers();
                           </td>
                           <td><?php echo htmlspecialchars($user['organization'] ?? ''); ?></td>
                           <td>
-                            <span class="badge bg-<?php echo ($user['status'] ?? 'active') === 'active' ? 'success' : 'secondary'; ?>">
-                              <?php echo ucfirst($user['status'] ?? 'active'); ?>
+                            <?php 
+                            $status = $user['status'] ?? 'pending';
+                            $statusClass = 'secondary';
+                            if ($status === 'approved' || $status === 'active') {
+                                $statusClass = 'success';
+                            } elseif ($status === 'pending') {
+                                $statusClass = 'warning';
+                            } elseif ($status === 'inactive') {
+                                $statusClass = 'danger';
+                            }
+                            ?>
+                            <span class="badge bg-<?php echo $statusClass; ?>">
+                              <?php echo ucfirst($status); ?>
                             </span>
                           </td>
                           <td>
@@ -263,14 +356,30 @@ $users = getAllUsers();
                           </td>
                           <td>
                             <div class="btn-group btn-group-sm" role="group">
+                              <?php if (($user['status'] ?? 'pending') === 'pending'): ?>
+                                <button type="button" class="btn btn-outline-success" 
+                                        data-bs-toggle="modal" 
+                                        data-bs-target="#approveUserModal<?php echo $user['id']; ?>"
+                                        title="Approve">
+                                  <i class="bi bi-check-circle"></i>
+                                </button>
+                                <button type="button" class="btn btn-outline-danger" 
+                                        data-bs-toggle="modal" 
+                                        data-bs-target="#rejectUserModal<?php echo $user['id']; ?>"
+                                        title="Reject">
+                                  <i class="bi bi-x-circle"></i>
+                                </button>
+                              <?php endif; ?>
                               <button type="button" class="btn btn-outline-primary" 
                                       data-bs-toggle="modal" 
-                                      data-bs-target="#editUserModal<?php echo $user['id']; ?>">
+                                      data-bs-target="#editUserModal<?php echo $user['id']; ?>"
+                                      title="Edit">
                                 <i class="bi bi-pencil"></i>
                               </button>
                               <button type="button" class="btn btn-outline-danger" 
                                       data-bs-toggle="modal" 
-                                      data-bs-target="#deleteUserModal<?php echo $user['id']; ?>">
+                                      data-bs-target="#deleteUserModal<?php echo $user['id']; ?>"
+                                      title="Delete">
                                 <i class="bi bi-trash"></i>
                               </button>
                             </div>
@@ -328,8 +437,18 @@ $users = getAllUsers();
                 <div class="mb-3">
                   <label class="form-label">Status</label>
                   <select class="form-select" name="status">
-                    <option value="active" <?php echo ($user['status'] ?? 'active') === 'active' ? 'selected' : ''; ?>>Active</option>
-                    <option value="inactive" <?php echo ($user['status'] ?? 'active') === 'inactive' ? 'selected' : ''; ?>>Inactive</option>
+                    <option value="pending" <?php echo ($user['status'] ?? 'pending') === 'pending' ? 'selected' : ''; ?>>Pending</option>
+                    <option value="approved" <?php echo ($user['status'] ?? 'pending') === 'approved' ? 'selected' : ''; ?>>Approved</option>
+                    <option value="active" <?php echo ($user['status'] ?? 'pending') === 'active' ? 'selected' : ''; ?>>Active</option>
+                    <option value="inactive" <?php echo ($user['status'] ?? 'pending') === 'inactive' ? 'selected' : ''; ?>>Inactive</option>
+                  </select>
+                </div>
+                
+                <div class="mb-3">
+                  <label class="form-label">Role</label>
+                  <select class="form-select" name="role">
+                    <option value="client" <?php echo ($user['role'] ?? 'client') === 'client' ? 'selected' : ''; ?>>Client</option>
+                    <option value="admin" <?php echo ($user['role'] ?? 'client') === 'admin' ? 'selected' : ''; ?>>Admin</option>
                   </select>
                 </div>
               </div>
@@ -338,6 +457,54 @@ $users = getAllUsers();
                 <button type="submit" class="btn btn-primary">Update User</button>
               </div>
             </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- Approve User Modal -->
+      <div class="modal fade" id="approveUserModal<?php echo $user['id']; ?>" tabindex="-1">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">Approve User</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+              <p>Are you sure you want to approve user <strong><?php echo htmlspecialchars($user['username']); ?></strong>?</p>
+              <p class="text-muted small">This will allow the user to log in to the system.</p>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+              <form method="POST" class="d-inline">
+                <input type="hidden" name="action" value="approve">
+                <input type="hidden" name="user_id" value="<?php echo $user['id']; ?>">
+                <button type="submit" class="btn btn-success">Approve User</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Reject User Modal -->
+      <div class="modal fade" id="rejectUserModal<?php echo $user['id']; ?>" tabindex="-1">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">Reject User</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+              <p>Are you sure you want to reject user <strong><?php echo htmlspecialchars($user['username']); ?></strong>?</p>
+              <p class="text-danger small">This will mark the user as inactive and prevent them from logging in.</p>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+              <form method="POST" class="d-inline">
+                <input type="hidden" name="action" value="reject">
+                <input type="hidden" name="user_id" value="<?php echo $user['id']; ?>">
+                <button type="submit" class="btn btn-danger">Reject User</button>
+              </form>
+            </div>
           </div>
         </div>
       </div>
@@ -366,6 +533,73 @@ $users = getAllUsers();
         </div>
       </div>
     <?php endforeach; ?>
+
+    <!-- Create User Modal -->
+    <div class="modal fade" id="createUserModal" tabindex="-1">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Create New User</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+          </div>
+          <form method="POST">
+            <div class="modal-body">
+              <input type="hidden" name="action" value="create">
+              
+              <div class="row g-3">
+                <div class="col-md-6">
+                  <label class="form-label">Username <span class="text-danger">*</span></label>
+                  <input type="text" class="form-control" name="username" required>
+                </div>
+                
+                <div class="col-md-6">
+                  <label class="form-label">Email <span class="text-danger">*</span></label>
+                  <input type="email" class="form-control" name="email" required>
+                </div>
+                
+                <div class="col-12">
+                  <label class="form-label">Full Name <span class="text-danger">*</span></label>
+                  <input type="text" class="form-control" name="full_name" required>
+                </div>
+                
+                <div class="col-md-6">
+                  <label class="form-label">Role <span class="text-danger">*</span></label>
+                  <select class="form-select" name="role" required>
+                    <option value="client" selected>Client</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                </div>
+                
+                <div class="col-md-6">
+                  <label class="form-label">Organization <span class="text-danger">*</span></label>
+                  <input type="text" class="form-control" name="organization" required>
+                </div>
+                
+                <div class="col-12">
+                  <label class="form-label">Phone</label>
+                  <input type="tel" class="form-control" name="phone">
+                </div>
+                
+                <div class="col-md-6">
+                  <label class="form-label">Password <span class="text-danger">*</span></label>
+                  <input type="password" class="form-control" name="password" required minlength="6">
+                  <small class="text-muted">Minimum 6 characters</small>
+                </div>
+                
+                <div class="col-md-6">
+                  <label class="form-label">Confirm Password <span class="text-danger">*</span></label>
+                  <input type="password" class="form-control" name="confirm_password" required minlength="6">
+                </div>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+              <button type="submit" class="btn btn-success">Create User</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
 
     <!-- Bootstrap JS -->
     <script

@@ -72,7 +72,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     
     if (empty($errors)) {
-        // Create user account
+        // Create user account with pending status (requires admin approval)
         $user_data = [
             'username' => $username,
             'email' => $email,
@@ -81,12 +81,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'role' => $role,
             'organization' => $organization,
             'phone' => $phone,
-            'created_at' => date('Y-m-d H:i:s'),
-            'status' => 'active'
+            'status' => 'pending'
         ];
         
         if (createUser($user_data)) {
-            $success_message = 'Account created successfully! You can now log in.';
+            $success_message = 'Account created successfully! Your account is pending approval from an administrator. You will be able to log in once your account has been approved.';
         } else {
             $errors[] = 'Failed to create account. Please try again.';
         }

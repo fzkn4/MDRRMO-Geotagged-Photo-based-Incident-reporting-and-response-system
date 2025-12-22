@@ -1,0 +1,6 @@
+# Database data directory (persistent storage)
+data/
+
+# Docker volumes and data
+*.log
+

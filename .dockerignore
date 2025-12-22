@@ -27,3 +27,6 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.temp
+
+# Database data directory (persistent storage, mounted as volume)
+data/

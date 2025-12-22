@@ -40,7 +40,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             exit();
         } else {
-            $error_message = 'Invalid username or password. Please try again.';
+            // More detailed error message for debugging
+            $error_message = 'Invalid username or password, or account is pending approval.';
+            // Log the attempt for debugging (remove in production)
+            error_log("Failed login attempt for username: " . htmlspecialchars($username));
         }
     }
 }

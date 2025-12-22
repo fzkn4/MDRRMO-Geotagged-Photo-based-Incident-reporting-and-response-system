@@ -141,7 +141,10 @@ function createUser($user_data) {
             return false;
         }
         
-        $stmt = $pdo->prepare('INSERT INTO users (username, email, password_hash, role, full_name, organization) VALUES (:username, :email, :password_hash, :role, :full_name, :organization)');
+        // Default status to 'pending' if not provided, unless it's explicitly set
+        $status = $user_data['status'] ?? 'pending';
+        
+        $stmt = $pdo->prepare('INSERT INTO users (username, email, password_hash, role, full_name, organization, phone, status) VALUES (:username, :email, :password_hash, :role, :full_name, :organization, :phone, :status)');
         if (!$stmt) {
             return false;
         }
@@ -153,10 +156,13 @@ function createUser($user_data) {
             ':role' => $user_data['role'] ?? 'client',
             ':full_name' => $user_data['full_name'] ?? $user_data['username'],
             ':organization' => $user_data['organization'] ?? null,
+            ':phone' => $user_data['phone'] ?? null,
+            ':status' => $status,
         ]);
         
         return $result;
     } catch (Throwable $e) {
+        error_log("createUser error: " . $e->getMessage());
         return false;
     }
 }
@@ -171,7 +177,7 @@ function authenticateUser($username, $password) {
             return false;
         }
         
-        $stmt = $pdo->prepare('SELECT id, username, email, password_hash, role, full_name, organization FROM users WHERE username = :username OR email = :email LIMIT 1');
+        $stmt = $pdo->prepare('SELECT id, username, email, password_hash, role, full_name, organization, status FROM users WHERE username = :username OR email = :email LIMIT 1');
         if (!$stmt) {
             return false;
         }
@@ -189,13 +195,26 @@ function authenticateUser($username, $password) {
         if ($user) {
             // Check if password_hash is valid
             if (empty($user['password_hash'])) {
+                error_log("Login failed: Empty password hash for user: {$user['username']}");
                 return false;
             }
             
-            // Verify password
+            // Verify password first
             $verifyResult = password_verify($password, $user['password_hash']);
             
+            if (!$verifyResult) {
+                error_log("Login failed: Password verification failed for user: {$user['username']}");
+                return false;
+            }
+            
             if ($verifyResult) {
+                // Check if user is approved/active (not pending or inactive)
+                $userStatus = strtolower(trim($user['status'] ?? 'pending'));
+                error_log("Login attempt for user: {$user['username']}, status: '$userStatus'");
+                if ($userStatus === 'pending' || $userStatus === 'inactive') {
+                    error_log("Login blocked: User status is '$userStatus' (username: {$user['username']})");
+                    return false; // User not approved or inactive
+                }
                 try {
                     // Ensure ID is an integer to avoid type issues
                     $userId = (int)$user['id'];
@@ -228,28 +247,84 @@ function authenticateUser($username, $password) {
 }
 
 function getAllUsers() {
-    return loadUsers();
+    try {
+        $pdo = getPdoConnection();
+        if (!$pdo) {
+            return [];
+        }
+        
+        $stmt = $pdo->query('SELECT id, username, email, role, full_name, organization, phone, status, created_at FROM users ORDER BY created_at DESC');
+        if (!$stmt) {
+            return [];
+        }
+        
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (Throwable $e) {
+        error_log("getAllUsers error: " . $e->getMessage());
+        return [];
+    }
 }
 
 function updateUser($user_id, $data) {
-    $users = loadUsers();
-    foreach ($users as &$user) {
-        if ($user['id'] == $user_id) {
-            $user = array_merge($user, $data);
-            return saveUsers($users);
+    try {
+        $pdo = getPdoConnection();
+        if (!$pdo) {
+            return false;
         }
+        
+        // Build update query dynamically based on provided data
+        $fields = [];
+        $params = [':id' => $user_id];
+        
+        $allowedFields = ['full_name', 'email', 'organization', 'phone', 'status', 'role'];
+        foreach ($allowedFields as $field) {
+            if (isset($data[$field])) {
+                $fields[] = "$field = :$field";
+                $params[":$field"] = $data[$field];
+            }
+        }
+        
+        if (empty($fields)) {
+            return false; // Nothing to update
+        }
+        
+        $sql = 'UPDATE users SET ' . implode(', ', $fields) . ' WHERE id = :id';
+        $stmt = $pdo->prepare($sql);
+        if (!$stmt) {
+            return false;
+        }
+        
+        return $stmt->execute($params);
+    } catch (Throwable $e) {
+        error_log("updateUser error: " . $e->getMessage());
+        return false;
     }
-    return false;
 }
 
 function deleteUser($user_id) {
-    $users = loadUsers();
-    foreach ($users as $key => $user) {
-        if ($user['id'] == $user_id) {
-            unset($users[$key]);
-            return saveUsers(array_values($users));
+    try {
+        $pdo = getPdoConnection();
+        if (!$pdo) {
+            return false;
         }
+        
+        $stmt = $pdo->prepare('DELETE FROM users WHERE id = :id');
+        if (!$stmt) {
+            return false;
+        }
+        
+        return $stmt->execute([':id' => $user_id]);
+    } catch (Throwable $e) {
+        error_log("deleteUser error: " . $e->getMessage());
+        return false;
     }
-    return false;
+}
+
+function approveUser($user_id) {
+    return updateUser($user_id, ['status' => 'approved']);
+}
+
+function rejectUser($user_id) {
+    return updateUser($user_id, ['status' => 'inactive']);
 }
 // Intentionally no closing PHP tag to prevent accidental output
