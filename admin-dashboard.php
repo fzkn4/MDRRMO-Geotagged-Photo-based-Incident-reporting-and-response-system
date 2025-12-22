@@ -55,7 +55,7 @@ if (isset($_GET['logout'])) {
     <div class="sidebar" id="sidebar">
       <div class="sidebar-header">
         <div class="sidebar-brand">
-          <i class="bi bi-shield-exclamation me-2"></i>
+          <img src="assets/icon.png" alt="MDRRMO Logo" style="max-width: 32px; height: auto; margin-right: 0.5rem;" />
           <span id="brandText">MDRRMO Admin</span>
         </div>
         <button class="sidebar-toggle" id="sidebarToggle">

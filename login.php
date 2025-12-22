@@ -84,7 +84,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <div class="card login-card">
         <div class="login-header">
           <div class="d-flex align-items-center justify-content-center gap-3 mb-3">
-            <i class="bi bi-shield-exclamation fs-1"></i>
+            <img src="assets/icon.png" alt="MDRRMO Logo" style="max-width: 80px; height: auto;" />
           </div>
           <h4 class="mb-1">MDRRMO Incident Desk</h4>
           <p class="mb-0 small opacity-75">Geotagged Photo Reporting System</p>
