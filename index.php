@@ -422,6 +422,7 @@ exit();
     <!-- EXIF reader -->
     <script src="https://cdn.jsdelivr.net/npm/exif-js@2.3.0/exif.min.js"></script>
 
+    <script src="scripts/sidebar-counts.js?v=<?php echo urlencode((string) @filemtime(__DIR__ . '/scripts/sidebar-counts.js')); ?>"></script>
     <script src="scripts/dashboard.js"></script>
     <script>
       document.addEventListener('DOMContentLoaded', function () {

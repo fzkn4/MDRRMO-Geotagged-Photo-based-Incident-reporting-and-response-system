@@ -620,6 +620,7 @@ if (isset($_GET['success']) && $_GET['success'] == '1' && isset($_GET['user'])) 
       crossorigin="anonymous"
     ></script>
     
+    <script src="scripts/sidebar-counts.js?v=<?php echo urlencode((string) @filemtime(__DIR__ . '/scripts/sidebar-counts.js')); ?>"></script>
     <script src="scripts/users.js"></script>
     <script>
       document.addEventListener('DOMContentLoaded', function () {

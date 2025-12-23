@@ -165,54 +165,89 @@
   }
 
   /**
-   * Render a pending report card
+   * Render a pending report card (matching incidents page style)
    */
   function renderPendingReportCard(incident) {
-    const date = new Date(incident.createdAt);
+    const date = new Date(incident.createdAt || Date.now());
+    const dateStr = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     const timeAgo = getTimeAgo(date);
-    const severityClass = getSeverityClass(incident.severity);
+    const statusBadge = getStatusBadge(incident.status || 'New');
     const typeIcon = getTypeIcon(incident.type);
+    const severityClass = getSeverityClass(incident.severity);
+    const hasLocation = incident.lat != null && incident.lng != null;
 
     return `
-      <div class="col-md-6 col-lg-4">
-        <div class="card border-0 shadow-sm h-100 pending-report-card hover-lift">
-          <div class="card-body p-3">
-            <div class="d-flex align-items-start justify-content-between mb-2">
-              <div class="d-flex align-items-center gap-2">
-                <div class="report-icon-wrapper ${severityClass}">
-                  <i class="${typeIcon}"></i>
-                </div>
-                <div>
-                  <h6 class="mb-0 fw-semibold">${escapeHtml(incident.type)}</h6>
-                  <small class="text-muted">${timeAgo}</small>
-                </div>
+      <div class="incident-grid-item">
+        <div class="incident-card-square hover-lift">
+          <!-- Image Section -->
+          <div class="incident-card-image-wrapper" onclick="viewReportImage('${incident.id}')">
+            ${incident.photoDataUrl ? `
+              <img src="${incident.photoDataUrl}" 
+                   alt="Incident photo" 
+                   class="incident-card-image"
+                   loading="lazy">
+            ` : `
+              <div class="incident-card-image-placeholder">
+                <i class="${typeIcon}"></i>
               </div>
-              <span class="badge ${severityClass}">${escapeHtml(incident.severity)}</span>
+            `}
+            <!-- Status Badge Overlay -->
+            <div class="incident-card-status-overlay">
+              <span class="badge ${statusBadge.class} incident-status-badge">${escapeHtml(statusBadge.text)}</span>
+            </div>
+            <!-- Type Icon Overlay -->
+            <div class="incident-card-type-overlay">
+              <div class="incident-type-icon ${severityClass}">
+                <i class="${typeIcon}"></i>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Content Section -->
+          <div class="incident-card-content">
+            <!-- Header -->
+            <div class="incident-card-header">
+              <h6 class="incident-card-title" title="${escapeHtml(incident.type || 'Unknown')}">
+                ${escapeHtml(incident.type || 'Unknown')}
+              </h6>
+              <small class="incident-card-time">${timeAgo}</small>
             </div>
             
-            <p class="card-text text-muted small mb-3" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+            <!-- Description -->
+            <p class="incident-card-description" title="${escapeHtml(incident.description || 'No description provided')}">
               ${escapeHtml(incident.description || 'No description provided')}
             </p>
-
-            ${incident.photoDataUrl ? `
-              <div class="mb-3">
-                <img src="${incident.photoDataUrl}" 
-                     alt="Incident photo" 
-                     class="img-fluid rounded pending-report-image"
-                     style="max-height: 120px; width: 100%; object-fit: cover; cursor: pointer;"
-                     onclick="viewReportImage('${incident.id}')">
+            
+            <!-- Metadata -->
+            <div class="incident-card-meta">
+              <div class="incident-meta-item">
+                <i class="bi bi-calendar3"></i>
+                <span>${dateStr}</span>
               </div>
-            ` : ''}
-
-            <div class="d-flex gap-2">
-              <a href="admin/incidents.php?id=${incident.id}" class="btn btn-sm btn-primary flex-fill">
-                <i class="bi bi-eye me-1"></i> View Details
-              </a>
-              ${incident.lat && incident.lng ? `
-                <button class="btn btn-sm btn-outline-secondary" onclick="viewOnMap(${incident.lat}, ${incident.lng})" title="View on Map">
+              ${hasLocation ? `
+                <div class="incident-meta-item">
+                  <i class="bi bi-geo-alt-fill"></i>
+                  <span>Located</span>
+                </div>
+              ` : ''}
+            </div>
+            
+            <!-- Actions -->
+            <div class="incident-card-actions">
+              <button class="btn btn-sm btn-primary incident-action-btn" onclick="window.location.href='admin/incidents.php?id=${incident.id}'" title="View Details">
+                <i class="bi bi-eye"></i>
+              </button>
+              ${hasLocation ? `
+                <button class="btn btn-sm btn-outline-secondary incident-action-btn" onclick="viewOnMap(${incident.lat}, ${incident.lng})" title="View on Map">
                   <i class="bi bi-geo-alt"></i>
                 </button>
               ` : ''}
+              <button class="btn btn-sm btn-outline-success incident-action-btn" onclick="updateIncidentStatus('${incident.id}', 'Dispatched')" title="Dispatch">
+                <i class="bi bi-truck"></i>
+              </button>
+              <button class="btn btn-sm btn-outline-danger incident-action-btn" onclick="updateIncidentStatus('${incident.id}', 'Resolved')" title="Resolve">
+                <i class="bi bi-check-circle"></i>
+              </button>
             </div>
           </div>
         </div>
@@ -235,10 +270,32 @@
   }
 
   /**
+   * Get status badge class and text
+   */
+  function getStatusBadge(status) {
+    const statusLower = (status || 'New').toLowerCase().trim();
+    switch (statusLower) {
+      case 'new':
+      case 'pending':
+        return { class: 'bg-secondary', text: 'New' };
+      case 'dispatched':
+        return { class: 'bg-primary', text: 'Dispatched' };
+      case 'resolved':
+        return { class: 'bg-success', text: 'Resolved' };
+      case 'cancelled':
+      case 'canceled':
+        return { class: 'bg-danger', text: 'Cancelled' };
+      default:
+        return { class: 'bg-secondary', text: status || 'New' };
+    }
+  }
+
+  /**
    * Get severity CSS class
    */
   function getSeverityClass(severity) {
-    const sev = (severity || '').toLowerCase();
+    if (!severity) return 'bg-secondary';
+    const sev = severity.toLowerCase();
     if (sev === 'critical') return 'bg-danger';
     if (sev === 'high') return 'bg-warning';
     if (sev === 'moderate') return 'bg-info';
@@ -295,18 +352,28 @@
 
   /**
    * Update sidebar counts
+   * Note: sidebar-counts.js handles the main updates, this is for dashboard-specific stats
    */
   function updateSidebarCounts() {
-    try {
-      const incidents = loadIncidents();
-      const pendingCount = incidents.filter(inc => inc.status === 'New' || inc.status === 'pending').length;
-      
-      const incidentBadge = document.getElementById('incidentCount');
-      if (incidentBadge) {
-        incidentBadge.textContent = pendingCount;
+    // Delegate to sidebar-counts.js if available
+    if (window.updateSidebarCounts && typeof window.updateSidebarCounts === 'function') {
+      window.updateSidebarCounts();
+    } else {
+      // Fallback: update locally
+      try {
+        const incidents = loadIncidents();
+        const pendingCount = incidents.filter(inc => {
+          const status = (inc.status || 'New').toLowerCase().trim();
+          return status === 'new' || status === 'pending';
+        }).length;
+        
+        const incidentBadge = document.getElementById('incidentCount');
+        if (incidentBadge) {
+          incidentBadge.textContent = pendingCount;
+        }
+      } catch (error) {
+        console.error('Error updating sidebar counts:', error);
       }
-    } catch (error) {
-      console.error('Error updating sidebar counts:', error);
     }
   }
 
@@ -344,8 +411,50 @@
   };
 
   window.viewOnMap = function(lat, lng) {
-    // Redirect to incidents page with map view (you can implement this based on your routing)
-    window.location.href = `admin/incidents.php?lat=${lat}&lng=${lng}`;
+    // For now, just show coordinates
+    alert(`Location: ${lat.toFixed(6)}, ${lng.toFixed(6)}\n\nMap view integration coming soon.`);
+  };
+
+  window.viewIncidentDetails = function(incidentId) {
+    window.location.href = `admin/incidents.php?id=${incidentId}`;
+  };
+
+  window.updateIncidentStatus = function(incidentId, newStatus) {
+    try {
+      const incidents = loadIncidents();
+      const incidentIndex = incidents.findIndex(inc => inc.id === incidentId);
+      
+      if (incidentIndex === -1) {
+        alert('Incident not found');
+        return;
+      }
+
+      if (!confirm(`Change status to "${newStatus}"?`)) {
+        return;
+      }
+
+      incidents[incidentIndex].status = newStatus;
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(incidents));
+      } catch (error) {
+        console.error('Error saving incidents:', error);
+      }
+      
+      // Reload dashboard
+      loadPendingReports();
+      loadIncidentStats();
+
+      // Dispatch events to update other pages and sidebar counts
+      window.dispatchEvent(new CustomEvent('incidentUpdated', { 
+        detail: { id: incidentId, status: newStatus } 
+      }));
+      
+      // Also dispatch incidentAdded to trigger sidebar count update
+      window.dispatchEvent(new CustomEvent('incidentAdded'));
+    } catch (error) {
+      console.error('Error updating incident status:', error);
+      alert('Error updating incident status');
+    }
   };
 
 })();

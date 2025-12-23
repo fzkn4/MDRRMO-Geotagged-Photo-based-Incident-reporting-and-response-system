@@ -147,7 +147,16 @@
     });
 
     initializeSidebarState();
-    updateSidebarCounts();
+    
+    // Use sidebar-counts.js if available, otherwise use local function
+    if (window.updateSidebarCounts && typeof window.updateSidebarCounts === 'function') {
+      // Wait a bit for sidebar-counts.js to be ready
+      setTimeout(function() {
+        window.updateSidebarCounts();
+      }, 100);
+    } else {
+      updateSidebarCounts();
+    }
   }
 
   function setupDropdown() {
@@ -237,19 +246,32 @@
   }
 
   function updateSidebarCounts() {
-    const incidentCount = document.getElementById("incidentCount");
-    const userCount = document.getElementById("userCount");
+    // Delegate to sidebar-counts.js if available, otherwise update locally
+    if (window.updateSidebarCounts && typeof window.updateSidebarCounts === 'function') {
+      window.updateSidebarCounts();
+    } else {
+      // Fallback: update locally
+      const incidentCount = document.getElementById("incidentCount");
+      const userCount = document.getElementById("userCount");
 
-    if (incidentCount) incidentCount.textContent = allIncidents.length;
-    if (userCount) {
-      fetch("users.php?action=count")
-        .then((response) => response.json())
-        .then((data) => {
-          if (userCount) userCount.textContent = data.count || 0;
-        })
-        .catch(() => {
-          if (userCount) userCount.textContent = "0";
-        });
+      if (incidentCount) {
+        const pendingCount = allIncidents.filter(inc => {
+          const status = (inc.status || 'New').toLowerCase().trim();
+          return status === 'new' || status === 'pending';
+        }).length;
+        incidentCount.textContent = pendingCount;
+      }
+      
+      if (userCount) {
+        fetch("users.php?action=count")
+          .then((response) => response.json())
+          .then((data) => {
+            if (userCount) userCount.textContent = data.count || 0;
+          })
+          .catch(() => {
+            if (userCount) userCount.textContent = "0";
+          });
+      }
     }
   }
 

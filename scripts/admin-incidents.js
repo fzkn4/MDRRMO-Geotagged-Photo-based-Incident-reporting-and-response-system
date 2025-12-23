@@ -141,7 +141,7 @@
     const hasLocation = incident.lat != null && incident.lng != null;
 
     return `
-      <div class="col-6 col-md-4 col-lg-3 col-xl-2 mb-4">
+      <div class="incident-grid-item">
         <div class="incident-card-square hover-lift">
           <!-- Image Section -->
           <div class="incident-card-image-wrapper" onclick="viewReportImage('${incident.id}')">
@@ -152,7 +152,7 @@
                    loading="lazy">
             ` : `
               <div class="incident-card-image-placeholder">
-                <i class="${typeIcon}" style="font-size: 3rem; color: #adb5bd;"></i>
+                <i class="${typeIcon}"></i>
               </div>
             `}
             <!-- Status Badge Overlay -->
@@ -415,10 +415,13 @@ ${incident.description || 'No description provided'}
       saveIncidents(incidents);
       loadAndDisplayIncidents();
 
-      // Dispatch event to update other pages
+      // Dispatch events to update other pages and sidebar counts
       window.dispatchEvent(new CustomEvent('incidentUpdated', { 
         detail: { id: incidentId, status: newStatus } 
       }));
+      
+      // Also dispatch incidentAdded to trigger sidebar count update
+      window.dispatchEvent(new CustomEvent('incidentAdded'));
     } catch (error) {
       console.error('Error updating incident status:', error);
       alert('Error updating incident status');

@@ -526,6 +526,8 @@
     inc.status = status;
     saveIncidents();
     renderList();
+    // Dispatch event to update sidebar counts
+    window.dispatchEvent(new CustomEvent("incidentAdded"));
   }
 
   function deleteIncident(id) {
@@ -535,6 +537,8 @@
     incidents.splice(idx, 1);
     saveIncidents();
     renderList();
+    // Dispatch event to update sidebar counts
+    window.dispatchEvent(new CustomEvent("incidentAdded"));
   }
 
   function downloadPhoto(id) {
@@ -830,23 +834,43 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   });
 
-  // Update incident count in sidebar
+  // Update incident count in sidebar (delegated to sidebar-counts.js)
+  // This function is kept for backward compatibility but will be overridden by sidebar-counts.js
   function updateSidebarCounts() {
-    const incidents = JSON.parse(localStorage.getItem("incidents") || "[]");
+    // Use the incidents array already loaded at the top of the script
+    // Reload from localStorage to ensure we have the latest data
+    let incidentsData;
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      incidentsData = raw ? JSON.parse(raw) : [];
+    } catch (error) {
+      console.error('Error loading incidents:', error);
+      incidentsData = incidents || []; // Fallback to the already loaded array
+    }
+    
     const incidentCount = document.getElementById("incidentCount");
     const totalIncidents = document.getElementById("totalIncidents");
     const newIncidents = document.getElementById("newIncidents");
     const resolvedIncidents = document.getElementById("resolvedIncidents");
 
-    if (incidentCount) incidentCount.textContent = incidents.length;
-    if (totalIncidents) totalIncidents.textContent = incidents.length;
+    // Only update if sidebar-counts.js hasn't already updated it
+    if (incidentCount && !window.sidebarCountsLoaded) {
+      const pendingCount = incidentsData.filter(inc => {
+        const status = (inc.status || 'New').toLowerCase().trim();
+        return status === 'new' || status === 'pending';
+      }).length;
+      incidentCount.textContent = pendingCount;
+    }
+    
+    // Update other dashboard-specific elements
+    if (totalIncidents) totalIncidents.textContent = incidentsData.length;
     if (newIncidents)
-      newIncidents.textContent = incidents.filter(
-        (i) => i.status === "New"
+      newIncidents.textContent = incidentsData.filter(
+        (i) => (i.status || 'New').toLowerCase() === 'new'
       ).length;
     if (resolvedIncidents)
-      resolvedIncidents.textContent = incidents.filter(
-        (i) => i.status === "Resolved"
+      resolvedIncidents.textContent = incidentsData.filter(
+        (i) => (i.status || '').toLowerCase() === 'resolved'
       ).length;
   }
 
@@ -870,16 +894,36 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Initialize sidebar state and counts
   initializeSidebarState();
-  updateSidebarCounts();
-  updateUserCount();
+  
+  // Use sidebar-counts.js if available, otherwise use local function
+  if (window.updateSidebarCounts && typeof window.updateSidebarCounts === 'function') {
+    window.updateSidebarCounts();
+  } else {
+    updateSidebarCounts();
+    updateUserCount();
+  }
 
   // Refresh button
   const btnRefresh = document.getElementById("btnRefresh");
   if (btnRefresh) {
     btnRefresh.addEventListener("click", function () {
-      updateSidebarCounts();
-      updateUserCount();
-      location.reload();
+      // Use sidebar-counts.js if available, otherwise use local functions
+      if (window.updateSidebarCounts && typeof window.updateSidebarCounts === 'function') {
+        window.updateSidebarCounts();
+      } else {
+        updateSidebarCounts();
+      }
+      
+      if (window.updateUserCount && typeof window.updateUserCount === 'function') {
+        window.updateUserCount();
+      } else {
+        updateUserCount();
+      }
+      
+      // Small delay before reload to ensure updates are saved
+      setTimeout(function() {
+        location.reload();
+      }, 100);
     });
   }
 });

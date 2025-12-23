@@ -197,6 +197,7 @@ if (isset($_GET['logout'])) {
       crossorigin="anonymous"
     ></script>
 
+    <script src="../scripts/sidebar-counts.js?v=<?php echo urlencode((string) @filemtime(__DIR__ . '/../scripts/sidebar-counts.js')); ?>"></script>
     <script src="../scripts/dashboard.js?v=<?php echo urlencode((string) @filemtime(__DIR__ . '/../scripts/dashboard.js')); ?>"></script>
     <script>
       document.addEventListener('DOMContentLoaded', function () {
