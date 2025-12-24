@@ -364,14 +364,14 @@ if (isset($_GET['logout'])) {
       }
 
       .org-node-ceo {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        border-color: #667eea;
+        background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+        border-color: #dc3545;
         color: white;
-        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        box-shadow: 0 4px 15px rgba(220, 53, 69, 0.3);
       }
 
       .org-node-ceo:hover {
-        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        box-shadow: 0 8px 25px rgba(220, 53, 69, 0.4);
       }
 
       .org-node-photo-wrapper {
