@@ -72,15 +72,22 @@
           const incStatus = (inc.status || 'New').trim().toLowerCase();
           const filterStatusLower = statusFilter.toLowerCase();
           
-          // Handle New/pending as the same
-          if (filterStatusLower === 'new') {
-            return incStatus === 'new' || incStatus === 'pending';
-          }
+          // Handle Pending - matches both 'New' and 'pending'
           if (filterStatusLower === 'pending') {
             return incStatus === 'new' || incStatus === 'pending';
           }
           
-          // Exact match for other statuses
+          // Handle Approved
+          if (filterStatusLower === 'approved') {
+            return incStatus === 'approved';
+          }
+          
+          // Handle Declined/Decline
+          if (filterStatusLower === 'decline' || filterStatusLower === 'declined') {
+            return incStatus === 'decline' || incStatus === 'declined';
+          }
+          
+          // Exact match for other statuses (for backward compatibility)
           return incStatus === filterStatusLower;
         });
       }
@@ -460,4 +467,5 @@ ${incident.description || 'No description provided'}
   };
 
 })();
+
 

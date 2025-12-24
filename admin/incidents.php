@@ -178,10 +178,9 @@ if (isset($_GET['logout'])) {
                     <label for="filterStatus" class="form-label small text-muted mb-0 d-none d-md-block">Filter:</label>
                     <select id="filterStatus" class="form-select form-select-sm incident-filter-select">
                       <option value="All" selected>All statuses</option>
-                      <option value="New">New</option>
-                      <option value="Dispatched">Dispatched</option>
-                      <option value="Resolved">Resolved</option>
-                      <option value="Cancelled">Cancelled</option>
+                      <option value="Pending">Pending</option>
+                      <option value="Approved">Approved</option>
+                      <option value="Decline">Declined</option>
                     </select>
                   </div>
                 </div>
