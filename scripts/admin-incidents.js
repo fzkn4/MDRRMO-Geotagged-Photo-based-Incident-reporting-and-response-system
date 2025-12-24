@@ -137,7 +137,7 @@
     const timeAgo = getTimeAgo(date);
     const statusBadge = getStatusBadge(incident.status || 'New');
     const typeIcon = getTypeIcon(incident.type);
-    const severityClass = getSeverityClass(incident.severity);
+    const typeClass = getTypeClass(incident.type);
     const hasLocation = incident.lat != null && incident.lng != null;
 
     return `
@@ -161,7 +161,7 @@
             </div>
             <!-- Type Icon Overlay -->
             <div class="incident-card-type-overlay">
-              <div class="incident-type-icon ${severityClass}">
+              <div class="incident-type-icon ${typeClass}">
                 <i class="${typeIcon}"></i>
               </div>
             </div>
@@ -198,19 +198,14 @@
             
             <!-- Actions -->
             <div class="incident-card-actions">
-              <button class="btn btn-sm btn-primary incident-action-btn" onclick="viewIncidentDetails('${incident.id}')" title="View Details">
-                <i class="bi bi-eye"></i>
+              <button class="btn btn-sm btn-outline-dark incident-action-btn" onclick="downloadIncidentPhoto('${incident.id}')" title="Download">
+                <i class="bi bi-download"></i>
               </button>
-              ${hasLocation ? `
-                <button class="btn btn-sm btn-outline-secondary incident-action-btn" onclick="viewOnMap(${incident.lat}, ${incident.lng})" title="View on Map">
-                  <i class="bi bi-geo-alt"></i>
-                </button>
-              ` : ''}
-              <button class="btn btn-sm btn-outline-success incident-action-btn" onclick="updateIncidentStatus('${incident.id}', 'Dispatched')" title="Dispatch">
-                <i class="bi bi-truck"></i>
-              </button>
-              <button class="btn btn-sm btn-outline-danger incident-action-btn" onclick="updateIncidentStatus('${incident.id}', 'Resolved')" title="Resolve">
+              <button class="btn btn-sm btn-outline-success incident-action-btn" onclick="updateIncidentStatus('${incident.id}', 'Approved')" title="Approve">
                 <i class="bi bi-check-circle"></i>
+              </button>
+              <button class="btn btn-sm btn-outline-danger incident-action-btn" onclick="updateIncidentStatus('${incident.id}', 'Decline')" title="Decline">
+                <i class="bi bi-x-circle"></i>
               </button>
             </div>
           </div>
@@ -254,6 +249,11 @@
         return { class: 'bg-primary', text: 'Dispatched' };
       case 'resolved':
         return { class: 'bg-success', text: 'Resolved' };
+      case 'approved':
+        return { class: 'bg-success', text: 'Approved' };
+      case 'decline':
+      case 'declined':
+        return { class: 'bg-danger', text: 'Declined' };
       case 'cancelled':
       case 'canceled':
         return { class: 'bg-danger', text: 'Cancelled' };
@@ -272,6 +272,15 @@
     if (sev === 'high') return 'bg-warning';
     if (sev === 'moderate') return 'bg-info';
     return 'bg-secondary';
+  }
+
+  /**
+   * Get type CSS class for icon colors
+   */
+  function getTypeClass(type) {
+    if (!type) return 'incident-type-other';
+    const typeLower = type.toLowerCase().replace(/\s+/g, '-');
+    return `incident-type-${typeLower}`;
   }
 
   /**
@@ -394,6 +403,28 @@ ${incident.description || 'No description provided'}
     } catch (error) {
       console.error('Error viewing incident details:', error);
       alert('Error loading incident details');
+    }
+  };
+
+  window.downloadIncidentPhoto = function(incidentId) {
+    try {
+      const incidents = loadIncidents();
+      const incident = incidents.find(inc => inc.id === incidentId);
+      if (!incident) {
+        alert('Incident not found');
+        return;
+      }
+      if (!incident.photoDataUrl) {
+        alert('No photo available for this incident');
+        return;
+      }
+      const a = document.createElement('a');
+      a.href = incident.photoDataUrl;
+      a.download = `${incident.type || 'incident'}_${incidentId}.jpg`;
+      a.click();
+    } catch (error) {
+      console.error('Error downloading incident photo:', error);
+      alert('Error downloading photo');
     }
   };
 

@@ -442,6 +442,40 @@ if (isset($_GET['logout'])) {
         color: white;
         font-size: clamp(1rem, 3vw, 1.2rem);
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        background: #6c757d; /* Default fallback color */
+      }
+      
+      /* Incident Type Colors */
+      .incident-type-icon.incident-type-fire {
+        background: linear-gradient(135deg, #ff6b6b, #ee5a52);
+      }
+      
+      .incident-type-icon.incident-type-flood {
+        background: linear-gradient(135deg, #4ecdc4, #44a08d);
+      }
+      
+      .incident-type-icon.incident-type-road-accident {
+        background: linear-gradient(135deg, #feca57, #ff9ff3);
+      }
+      
+      .incident-type-icon.incident-type-medical {
+        background: linear-gradient(135deg, #ff9ff3, #f368e0);
+      }
+      
+      .incident-type-icon.incident-type-landslide {
+        background: linear-gradient(135deg, #a55eea, #8b5cf6);
+      }
+      
+      .incident-type-icon.incident-type-earthquake {
+        background: linear-gradient(135deg, #fd79a8, #e84393);
+      }
+      
+      .incident-type-icon.incident-type-power-outage {
+        background: linear-gradient(135deg, #fdcb6e, #e17055);
+      }
+      
+      .incident-type-icon.incident-type-other {
+        background: linear-gradient(135deg, #6c5ce7, #a29bfe);
       }
       
       /* Content Section - Rectangle Layout (Right Side) */

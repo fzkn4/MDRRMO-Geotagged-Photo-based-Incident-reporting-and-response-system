@@ -184,9 +184,6 @@ if (isset($_GET['logout'])) {
                 <button class="btn btn-outline-secondary" id="btnRefreshDashboard">
                   <i class="bi bi-arrow-clockwise me-1"></i> Refresh
                 </button>
-                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addIncidentModal">
-                  <i class="bi bi-plus-circle me-1"></i> Add New Incident
-                </button>
               </div>
             </div>
           </div>
@@ -285,9 +282,6 @@ if (isset($_GET['logout'])) {
                     <p class="text-muted small mb-0">Incident reports awaiting review and action</p>
                   </div>
                   <div class="d-flex gap-2">
-                    <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addIncidentModal">
-                      <i class="bi bi-plus-circle me-1"></i> Add New Incident
-                    </button>
                     <a href="admin/incidents.php" class="btn btn-outline-primary btn-sm">
                       <i class="bi bi-arrow-right me-1"></i> View All
                     </a>
@@ -310,9 +304,6 @@ if (isset($_GET['logout'])) {
                   </div>
                   <h5 class="fw-semibold mb-2">No Pending Reports</h5>
                   <p class="text-muted mb-4">All reports have been reviewed. Great job!</p>
-                  <button type="button" class="btn btn-primary me-2" data-bs-toggle="modal" data-bs-target="#addIncidentModal">
-                    <i class="bi bi-plus-circle me-1"></i> Add New Incident
-                  </button>
                   <a href="admin/incidents.php" class="btn btn-outline-primary">
                     <i class="bi bi-flag me-1"></i> View All Incidents
                   </a>
@@ -342,114 +333,6 @@ if (isset($_GET['logout'])) {
       </footer>
     </div>
 
-    <!-- Add Incident Modal -->
-    <div class="modal fade" id="addIncidentModal" tabindex="-1" aria-labelledby="addIncidentModalLabel" aria-hidden="true">
-      <div class="modal-dialog modal-dialog-centered modal-lg">
-        <div class="modal-content border-0 shadow-lg" style="overflow: hidden;">
-          <!-- Modal Header with Red Theme -->
-          <div class="modal-header border-0" style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); padding: 1.5rem 1.75rem;">
-            <div class="w-100 pe-3">
-              <h5 class="modal-title text-white fw-bold mb-2" id="addIncidentModalLabel" style="font-size: 1.5rem;">
-                <i class="bi bi-exclamation-triangle-fill me-2"></i>Report New Incident
-              </h5>
-              <p class="text-white mb-0" style="opacity: 0.9; font-size: 0.9rem;">Fill in the details below to create a new incident report</p>
-            </div>
-            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close" style="opacity: 0.9;"></button>
-          </div>
-          
-          <!-- Modal Body with Improved Padding -->
-          <div class="modal-body" style="padding: 2rem 1.75rem;">
-            <form id="addIncidentForm" class="needs-validation" novalidate>
-              <!-- Incident Type -->
-              <div class="mb-4">
-                <label for="modalIncidentType" class="form-label fw-semibold mb-2" style="font-size: 0.95rem; color: #495057;">
-                  Incident Type <span class="text-danger">*</span>
-                </label>
-                <select id="modalIncidentType" class="form-select form-select-lg" required style="padding: 0.75rem 1rem; border: 2px solid #dee2e6; border-radius: 0.5rem; transition: all 0.3s ease;">
-                  <option value="" selected disabled>Select incident type...</option>
-                  <option value="Fire">🔥 Fire</option>
-                  <option value="Flood">💧 Flood</option>
-                  <option value="Road Accident">🚗 Road Accident</option>
-                  <option value="Medical">❤️ Medical</option>
-                  <option value="Landslide">⛰️ Landslide</option>
-                  <option value="Earthquake">🌍 Earthquake</option>
-                  <option value="Power Outage">⚡ Power Outage</option>
-                  <option value="Other">⚠️ Other</option>
-                </select>
-                <div class="invalid-feedback">Please select an incident type.</div>
-              </div>
-
-              <!-- Description -->
-              <div class="mb-4">
-                <label for="modalDescription" class="form-label fw-semibold mb-2" style="font-size: 0.95rem; color: #495057;">
-                  Description <span class="text-danger">*</span>
-                </label>
-                <textarea 
-                  id="modalDescription" 
-                  class="form-control" 
-                  rows="6" 
-                  placeholder="Provide detailed information about the incident:
-
-• What happened? (Describe the incident)
-• Where did it occur? (Location details)
-• When did it happen? (Date and time if known)
-• Who's involved? (Number of people, any injuries, etc.)" 
-                  required
-                  style="padding: 0.75rem 1rem; border: 2px solid #dee2e6; border-radius: 0.5rem; resize: vertical; transition: all 0.3s ease;"
-                ></textarea>
-                <div class="form-text mt-2" style="font-size: 0.875rem;">
-                  <i class="bi bi-info-circle me-1 text-info"></i>
-                  Include: What, Where, When, and Who's involved
-                </div>
-                <div class="invalid-feedback">Please provide a detailed description of the incident.</div>
-              </div>
-
-              <!-- Image Upload -->
-              <div class="mb-0">
-                <label for="modalPhoto" class="form-label fw-semibold mb-2" style="font-size: 0.95rem; color: #495057;">
-                  Incident Photo <span class="text-danger">*</span>
-                  <small class="text-muted fw-normal">(Geotagged photos preferred)</small>
-                </label>
-                <input
-                  id="modalPhoto"
-                  type="file"
-                  class="form-control form-control-lg"
-                  accept="image/*"
-                  capture="environment"
-                  required
-                  style="padding: 0.75rem 1rem; border: 2px solid #dee2e6; border-radius: 0.5rem; transition: all 0.3s ease;"
-                />
-                <div class="form-text mt-2" id="modalPhotoMeta" style="font-size: 0.875rem;">
-                  <i class="bi bi-clock me-1 text-muted"></i>Awaiting image upload...
-                </div>
-                <div class="invalid-feedback">Please upload a photo of the incident.</div>
-                
-                <!-- Photo Preview -->
-                <div class="mt-3 border rounded-3 p-4 text-center" id="modalPhotoPreviewWrap" style="display: none; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border: 2px dashed #dc3545 !important;">
-                  <img id="modalPhotoPreview" alt="Photo Preview" class="img-fluid rounded shadow-sm" style="max-height: 280px; width: auto; border: 2px solid #fff;" />
-                  <div class="mt-3">
-                    <button type="button" class="btn btn-sm btn-outline-danger" id="modalRemovePhoto" style="border-radius: 0.5rem;">
-                      <i class="bi bi-x-circle me-1"></i> Remove Photo
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </form>
-          </div>
-          
-          <!-- Modal Footer with Improved Padding -->
-          <div class="modal-footer border-top border-2" style="padding: 1.25rem 1.75rem; background: #f8f9fa;">
-            <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal" style="border-radius: 0.5rem; font-weight: 500;">
-              <i class="bi bi-x-circle me-1"></i> Cancel
-            </button>
-            <button type="button" class="btn btn-danger btn-lg px-5" id="modalSubmitIncident" style="border-radius: 0.5rem; font-weight: 600; box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3); transition: all 0.3s ease;">
-              <i class="bi bi-check-circle me-1"></i> Submit Incident Report
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-
     <!-- Bootstrap JS -->
     <script
       src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
@@ -460,7 +343,6 @@ if (isset($_GET['logout'])) {
     <script src="scripts/sidebar-counts.js?v=<?php echo urlencode((string) @filemtime(__DIR__ . '/scripts/sidebar-counts.js')); ?>"></script>
     <script src="scripts/dashboard.js?v=<?php echo urlencode((string) @filemtime(__DIR__ . '/scripts/dashboard.js')); ?>"></script>
     <script src="scripts/admin-dashboard.js?v=<?php echo urlencode((string) @filemtime(__DIR__ . '/scripts/admin-dashboard.js')); ?>"></script>
-    <script src="scripts/add-incident-modal.js?v=<?php echo urlencode((string) @filemtime(__DIR__ . '/scripts/add-incident-modal.js')); ?>"></script>
     <style>
       /* Dashboard-specific styles */
       .welcome-text {
@@ -593,6 +475,40 @@ if (isset($_GET['logout'])) {
         color: white;
         font-size: clamp(1rem, 3vw, 1.2rem);
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        background: #6c757d; /* Default fallback color */
+      }
+      
+      /* Incident Type Colors */
+      .incident-type-icon.incident-type-fire {
+        background: linear-gradient(135deg, #ff6b6b, #ee5a52);
+      }
+      
+      .incident-type-icon.incident-type-flood {
+        background: linear-gradient(135deg, #4ecdc4, #44a08d);
+      }
+      
+      .incident-type-icon.incident-type-road-accident {
+        background: linear-gradient(135deg, #feca57, #ff9ff3);
+      }
+      
+      .incident-type-icon.incident-type-medical {
+        background: linear-gradient(135deg, #ff9ff3, #f368e0);
+      }
+      
+      .incident-type-icon.incident-type-landslide {
+        background: linear-gradient(135deg, #a55eea, #8b5cf6);
+      }
+      
+      .incident-type-icon.incident-type-earthquake {
+        background: linear-gradient(135deg, #fd79a8, #e84393);
+      }
+      
+      .incident-type-icon.incident-type-power-outage {
+        background: linear-gradient(135deg, #fdcb6e, #e17055);
+      }
+      
+      .incident-type-icon.incident-type-other {
+        background: linear-gradient(135deg, #6c5ce7, #a29bfe);
       }
       
       /* Content Section - Rectangle Layout (Right Side) */
@@ -930,36 +846,6 @@ if (isset($_GET['logout'])) {
         }
       }
       
-      /* Add Incident Modal Styles */
-      #addIncidentModal .modal-content {
-        border-radius: 1rem;
-      }
-      
-      #addIncidentModal .form-select:focus,
-      #addIncidentModal .form-control:focus {
-        border-color: #dc3545;
-        box-shadow: 0 0 0 0.25rem rgba(220, 53, 69, 0.25);
-      }
-      
-      #addIncidentModal .form-select:hover,
-      #addIncidentModal .form-control:hover {
-        border-color: #adb5bd;
-      }
-      
-      #addIncidentModal .btn-danger:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 6px 16px rgba(220, 53, 69, 0.4) !important;
-      }
-      
-      #addIncidentModal .btn-danger:active {
-        transform: translateY(0);
-      }
-      
-      #addIncidentModal .btn-outline-secondary:hover {
-        background-color: #6c757d;
-        border-color: #6c757d;
-        color: white;
-      }
     </style>
     <script>
       document.addEventListener('DOMContentLoaded', function () {
