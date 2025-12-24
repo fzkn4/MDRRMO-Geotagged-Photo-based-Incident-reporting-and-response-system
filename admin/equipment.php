@@ -154,9 +154,58 @@ if (isset($_GET['logout'])) {
                 <button class="btn btn-outline-secondary" id="btnRefresh">
                   <i class="bi bi-arrow-clockwise"></i> Refresh
                 </button>
-                <button class="btn btn-primary" id="btnAddEquipment">
+                <button class="btn btn-primary" id="btnAddEquipment" data-bs-toggle="modal" data-bs-target="#addEquipmentModal">
                   <i class="bi bi-plus-circle"></i> Add Equipment
                 </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="row mb-4">
+          <!-- Total Equipment Types -->
+          <div class="col-xl-6 col-md-6 mb-4">
+            <div class="card border-0 shadow-sm h-100 stats-card hover-lift">
+              <div class="card-body p-4">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                  <div class="stats-icon-wrapper bg-primary bg-opacity-10">
+                    <i class="bi bi-tools text-primary fs-3"></i>
+                  </div>
+                  <div class="text-end">
+                    <div class="text-muted small text-uppercase fw-semibold mb-1">Equipment Types</div>
+                    <h2 class="mb-0 fw-bold" id="totalEquipmentTypes">0</h2>
+                  </div>
+                </div>
+                <div class="mt-2">
+                  <small class="text-muted">
+                    <i class="bi bi-list-ul me-1"></i>
+                    Different equipment categories
+                  </small>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Overall Total Equipment -->
+          <div class="col-xl-6 col-md-6 mb-4">
+            <div class="card border-0 shadow-sm h-100 stats-card hover-lift">
+              <div class="card-body p-4">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                  <div class="stats-icon-wrapper bg-success bg-opacity-10">
+                    <i class="bi bi-box-seam text-success fs-3"></i>
+                  </div>
+                  <div class="text-end">
+                    <div class="text-muted small text-uppercase fw-semibold mb-1">Total Equipment</div>
+                    <h2 class="mb-0 fw-bold" id="totalEquipmentCount">0</h2>
+                  </div>
+                </div>
+                <div class="mt-2">
+                  <small class="text-muted">
+                    <i class="bi bi-calculator me-1"></i>
+                    Total items in inventory
+                  </small>
+                </div>
               </div>
             </div>
           </div>
@@ -172,11 +221,28 @@ if (isset($_GET['logout'])) {
                 </h5>
               </div>
               <div class="card-body">
-                <div class="text-center py-5">
-                  <i class="bi bi-toolbox fs-1 text-muted d-block mb-3"></i>
-                  <p class="text-muted">Equipment management interface will be displayed here.</p>
-                  <p class="text-muted small">This feature is under development.</p>
+                <!-- Loading State -->
+                <div id="equipmentLoading" class="text-center py-5" style="display: none;">
+                  <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                  </div>
+                  <p class="mt-3 text-muted">Loading equipment...</p>
                 </div>
+
+                <!-- Empty State -->
+                <div id="equipmentEmpty" class="text-center py-5">
+                  <div class="mb-4">
+                    <i class="bi bi-toolbox fs-1 text-muted d-block mb-3"></i>
+                    <h5 class="fw-semibold mb-2">No Equipment Added Yet</h5>
+                    <p class="text-muted mb-4">Start building your equipment inventory by adding equipment items.</p>
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addEquipmentModal">
+                      <i class="bi bi-plus-circle me-1"></i> Add First Equipment
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Equipment Grid -->
+                <div id="equipmentGrid" class="equipment-grid" style="display: none;"></div>
               </div>
             </div>
           </div>
@@ -197,8 +263,244 @@ if (isset($_GET['logout'])) {
       crossorigin="anonymous"
     ></script>
 
+    <!-- Add Equipment Modal -->
+    <div class="modal fade" id="addEquipmentModal" tabindex="-1" aria-labelledby="addEquipmentModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg">
+          <div class="modal-header border-0 bg-primary text-white">
+            <h5 class="modal-title fw-bold" id="addEquipmentModalLabel">
+              <i class="bi bi-tool me-2"></i>Add Equipment
+            </h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <form id="addEquipmentForm">
+            <div class="modal-body p-4">
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label for="equipmentName" class="form-label fw-semibold">Equipment Name <span class="text-danger">*</span></label>
+                  <input type="text" class="form-control" id="equipmentName" required placeholder="e.g., Fire Truck, Ambulance, Rescue Equipment">
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                  <label for="equipmentCount" class="form-label fw-semibold">Count/Quantity <span class="text-danger">*</span></label>
+                  <input type="number" class="form-control" id="equipmentCount" required min="1" placeholder="Enter quantity">
+                  <small class="text-muted">Number of items available</small>
+                </div>
+              </div>
+              
+              <div class="mb-3">
+                <label for="equipmentImage" class="form-label fw-semibold">Equipment Image</label>
+                <input type="file" class="form-control" id="equipmentImage" accept="image/*">
+                <small class="text-muted d-block mt-1">Upload an image of the equipment (optional). JPG, PNG, or GIF formats.</small>
+                
+                <!-- Image Preview -->
+                <div class="mt-3 text-center" id="equipmentImagePreviewContainer" style="display: none;">
+                  <img id="equipmentImagePreview" src="" alt="Preview" class="img-thumbnail" style="max-width: 300px; max-height: 300px; border-radius: 8px; object-fit: cover;">
+                  <div class="mt-2">
+                    <button type="button" class="btn btn-sm btn-outline-danger" id="removeEquipmentImage">
+                      <i class="bi bi-x-circle me-1"></i> Remove Image
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="modal-footer border-0 bg-light">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+              <button type="submit" class="btn btn-primary">
+                <i class="bi bi-check-circle me-1"></i> Add Equipment
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
     <script src="../scripts/sidebar-counts.js?v=<?php echo urlencode((string) @filemtime(__DIR__ . '/../scripts/sidebar-counts.js')); ?>"></script>
     <script src="../scripts/dashboard.js?v=<?php echo urlencode((string) @filemtime(__DIR__ . '/../scripts/dashboard.js')); ?>"></script>
+    <script src="../scripts/equipment.js?v=<?php echo urlencode((string) @filemtime(__DIR__ . '/../scripts/equipment.js')); ?>"></script>
+    <style>
+      /* Stats Card Styles */
+      .stats-card {
+        transition: all 0.3s ease;
+        border-left: 4px solid transparent;
+      }
+      
+      .stats-card.hover-lift:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1) !important;
+      }
+      
+      .stats-icon-wrapper {
+        width: 60px;
+        height: 60px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+      }
+      
+      .stats-card:hover .stats-icon-wrapper {
+        transform: scale(1.1);
+      }
+
+      /* Equipment Grid Styles */
+      .equipment-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 1.25rem;
+        padding: 1rem 0;
+      }
+
+      .equipment-card {
+        background: white;
+        border: 2px solid #e9ecef;
+        border-radius: 10px;
+        overflow: hidden;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        display: flex;
+        flex-direction: column;
+      }
+
+      .equipment-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 20px rgba(220, 53, 69, 0.15);
+        border-color: #dc3545;
+      }
+
+      .equipment-card-image {
+        width: 100%;
+        height: 140px;
+        object-fit: cover;
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+      }
+
+      .equipment-card-placeholder {
+        width: 100%;
+        height: 140px;
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .equipment-card-placeholder i {
+        font-size: 2.5rem;
+        color: #adb5bd;
+      }
+
+      .equipment-card-body {
+        padding: 1rem;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+      }
+
+      .equipment-card-title {
+        font-weight: 700;
+        font-size: 0.95rem;
+        color: #212529;
+        margin-bottom: 0.75rem;
+        line-height: 1.3;
+      }
+
+      .equipment-card-count {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.4rem 0.85rem;
+        background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+        color: white;
+        border-radius: 18px;
+        font-weight: 600;
+        font-size: 0.85rem;
+        margin-top: auto;
+        width: fit-content;
+      }
+
+      .equipment-card-actions {
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid #e9ecef;
+        display: flex;
+        gap: 0.5rem;
+      }
+
+      .equipment-card-actions .btn {
+        flex: 1;
+      }
+
+      /* Modal Styles */
+      #addEquipmentModal .modal-content {
+        border-radius: 12px;
+        overflow: hidden;
+      }
+
+      #addEquipmentModal .modal-header {
+        padding: 1.5rem;
+      }
+
+      #addEquipmentModal .modal-body {
+        padding: 1.5rem;
+      }
+
+      #addEquipmentModal .form-label {
+        margin-bottom: 0.5rem;
+        color: #495057;
+      }
+
+      #addEquipmentModal .form-control {
+        border-radius: 8px;
+        border: 1.5px solid #dee2e6;
+        padding: 0.625rem 0.875rem;
+        transition: all 0.2s ease;
+      }
+
+      #addEquipmentModal .form-control:focus {
+        border-color: #0d6efd;
+        box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.15);
+      }
+
+      @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+      }
+
+      .spinning {
+        animation: spin 1s linear;
+      }
+
+      /* Responsive */
+      @media (max-width: 768px) {
+        .equipment-grid {
+          grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+          gap: 1rem;
+        }
+
+        .equipment-card-image,
+        .equipment-card-placeholder {
+          height: 120px;
+        }
+
+        .equipment-card-placeholder i {
+          font-size: 2rem;
+        }
+
+        .equipment-card-body {
+          padding: 0.85rem;
+        }
+
+        .equipment-card-title {
+          font-size: 0.9rem;
+        }
+
+        .equipment-card-count {
+          padding: 0.35rem 0.75rem;
+          font-size: 0.8rem;
+        }
+      }
+    </style>
     <script>
       document.addEventListener('DOMContentLoaded', function () {
         document.querySelectorAll('.sidebar .nav-item').forEach(function (item) {
