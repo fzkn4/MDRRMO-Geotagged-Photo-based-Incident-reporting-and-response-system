@@ -47,7 +47,7 @@ if (isset($_GET['logout'])) {
     <link rel='stylesheet' href='https://cdn-uicons.flaticon.com/3.0.0/uicons-bold-rounded/css/uicons-bold-rounded.css'>
     <link rel='stylesheet' href='https://cdn-uicons.flaticon.com/3.0.0/uicons-regular-straight/css/uicons-regular-straight.css'>
   </head>
-  <body>
+  <body data-current-user="<?php echo htmlspecialchars(getCurrentUser(), ENT_QUOTES); ?>">
     <!-- Sidebar Overlay for Mobile -->
     <div class="sidebar-overlay" id="sidebarOverlay"></div>
     
@@ -183,6 +183,9 @@ if (isset($_GET['logout'])) {
       }
     </style>
     <script>
+      // Set current user for scripts
+      window.CURRENT_USER = '<?php echo htmlspecialchars(getCurrentUser(), ENT_QUOTES); ?>';
+      
       document.addEventListener('DOMContentLoaded', function () {
         document.querySelectorAll('.sidebar .nav-item').forEach(function (item) {
           const icon = item.querySelector('.nav-icon i');

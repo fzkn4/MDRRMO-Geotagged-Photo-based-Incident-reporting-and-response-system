@@ -305,6 +305,55 @@
     localStorage.setItem(STORAGE_KEY, JSON.stringify(incidents));
   }
 
+  /**
+   * Save incident to database via API
+   */
+  async function saveIncidentToDatabase(incident) {
+    try {
+      // Get current user (try multiple methods)
+      const currentUser = window.CURRENT_USER || 
+                         document.body.getAttribute('data-current-user') || 
+                         '';
+      
+      // Add reportedBy field if not present
+      if (!incident.reportedBy && currentUser) {
+        incident.reportedBy = currentUser;
+      }
+      
+      // Determine API URL based on current page location
+      // If we're in a subdirectory (client/ or admin/), go up one level
+      const isSubdirectory = window.location.pathname.split('/').filter(p => p).length > 1;
+      const API_URL = isSubdirectory ? '../api/incidents.php' : 'api/incidents.php';
+      
+      // Save to database via API
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(incident)
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      
+      // Use the ID from API response if provided
+      if (result.id) {
+        incident.id = result.id;
+      }
+      
+      return result;
+    } catch (error) {
+      console.error('Error saving incident to database:', error);
+      // Don't throw - allow localStorage fallback
+      return null;
+    }
+  }
+
   function uid() {
     return (
       "inc_" +
@@ -321,6 +370,12 @@
     const lng = lngEl.value ? Number(lngEl.value) : null;
     const file = photoInput.files && photoInput.files[0];
     if (!file) throw new Error("Photo missing");
+    
+    // Get current user (try multiple methods)
+    const currentUser = window.CURRENT_USER || 
+                       document.body.getAttribute('data-current-user') || 
+                       '';
+    
     // Persist a lightweight resized image (canvas) to reduce storage impact
     return resizeImageToDataURL(file, 1280, 1280).then((dataUrl) => ({
       id: uid(),
@@ -328,6 +383,7 @@
       severity,
       description,
       status: "New",
+      reportedBy: currentUser, // Add reportedBy field for database
       createdAt: Date.now(),
       lat,
       lng,
@@ -636,8 +692,17 @@
       }
       try {
         const inc = await serializeFormToIncident();
+        
+        // Save to database first
+        const dbResult = await saveIncidentToDatabase(inc);
+        if (dbResult && dbResult.id) {
+          inc.id = dbResult.id; // Use database ID if provided
+        }
+        
+        // Also save to localStorage as backup
         incidents.push(inc);
         saveIncidents();
+        
         form.reset();
         if (photoPreview) photoPreview.classList.add("d-none");
         if (photoPlaceholder) photoPlaceholder.classList.remove("d-none");

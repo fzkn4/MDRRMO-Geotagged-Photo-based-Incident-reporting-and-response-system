@@ -58,11 +58,13 @@
 
         try {
           const incident = await serializeIncidentForm();
-          saveIncident(incident);
           
-          // Show success message
+          // Show loading state
           submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Submitting...';
           submitBtn.disabled = true;
+          
+          // Save to database
+          await saveIncident(incident);
 
           // Close modal after a brief delay
           setTimeout(function() {
@@ -120,11 +122,17 @@
     // Resize and convert image to data URL
     const photoDataUrl = await resizeImageToDataURL(file, 1280, 1280);
 
+    // Get current user (try multiple methods)
+    const currentUser = window.CURRENT_USER || 
+                       document.body.getAttribute('data-current-user') || 
+                       '';
+
     return {
       id: generateId(),
       type: type,
       description: description,
       status: 'New',
+      reportedBy: currentUser, // Add reportedBy field
       createdAt: Date.now(),
       photoDataUrl: photoDataUrl,
       lat: null, // Location removed as per requirements
@@ -167,16 +175,54 @@
   }
 
   /**
-   * Save incident to localStorage
+   * Save incident to database API and localStorage as backup
    */
-  function saveIncident(incident) {
+  async function saveIncident(incident) {
     try {
-      const incidents = loadIncidents();
-      incidents.push(incident);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(incidents));
+      // Get current user (try multiple methods)
+      const currentUser = window.CURRENT_USER || 
+                         document.body.getAttribute('data-current-user') || 
+                         '';
+      
+      // Add reportedBy field if not present
+      if (!incident.reportedBy && currentUser) {
+        incident.reportedBy = currentUser;
+      }
+      
+      // Save to database via API
+      const API_URL = '../api/incidents.php';
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(incident)
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      
+      // Also save to localStorage as backup
+      try {
+        const incidents = loadIncidents();
+        // Use the ID from API response if provided
+        if (result.id) {
+          incident.id = result.id;
+        }
+        incidents.push(incident);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(incidents));
+      } catch (localStorageError) {
+        console.warn('Failed to save to localStorage (non-critical):', localStorageError);
+      }
+      
+      return result;
     } catch (error) {
       console.error('Error saving incident:', error);
-      throw new Error('Failed to save incident');
+      throw new Error('Failed to save incident: ' + error.message);
     }
   }
 

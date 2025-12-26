@@ -61,32 +61,85 @@
    * Update all sidebar counts
    */
   function updateSidebarCounts() {
-    updateIncidentCount();
+    // updateIncidentCount is now async, but we don't need to await it
+    updateIncidentCount().catch(err => {
+      console.error('Error in updateIncidentCount:', err);
+    });
     updateUserCount();
   }
 
   /**
    * Update incident count badge
    */
-  function updateIncidentCount() {
+  async function updateIncidentCount() {
     try {
-      const incidents = loadIncidents();
+      const incidentBadge = document.getElementById('incidentCount');
+      if (!incidentBadge) return;
+      
+      let incidents = [];
+      const currentUser = getCurrentUser();
+      
+      // Determine API path based on current page location
+      const path = window.location.pathname;
+      let apiUrl = 'api/incidents.php';
+      if (path.includes('/admin/') || path.includes('/client/')) {
+        apiUrl = '../api/incidents.php';
+      }
+      
+      // Try to fetch from database API first
+      try {
+        const response = await fetch(apiUrl);
+        if (response.ok) {
+          const data = await response.json();
+          if (Array.isArray(data) && !data.error) {
+            incidents = data;
+            console.debug(`Sidebar: Loaded ${incidents.length} incidents from database for user: ${currentUser}`);
+          } else if (data.error) {
+            console.warn('API returned error:', data.error);
+          }
+        } else {
+          console.warn(`API returned status ${response.status}`);
+        }
+      } catch (apiError) {
+        console.warn('Failed to fetch incidents from API for sidebar count:', apiError);
+      }
+      
+      // If no incidents from database, try localStorage (filtered by user)
+      if (incidents.length === 0) {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (raw) {
+            const allIncidents = JSON.parse(raw);
+            console.debug(`Sidebar: Checking ${allIncidents.length} incidents in localStorage for user: ${currentUser}`);
+            // Filter by current user
+            incidents = allIncidents.filter(inc => {
+              // Match by reportedBy field
+              const matches = inc.reportedBy === currentUser;
+              if (!matches && inc.reportedBy) {
+                console.debug(`Sidebar: Incident ${inc.id} reportedBy "${inc.reportedBy}" doesn't match current user "${currentUser}"`);
+              }
+              return matches;
+            });
+            console.debug(`Sidebar: Found ${incidents.length} incidents in localStorage for user: ${currentUser}`);
+          }
+        } catch (localStorageError) {
+          console.warn('Failed to load incidents from localStorage:', localStorageError);
+        }
+      }
+      
       // Count pending incidents (New or pending status)
       const pendingCount = incidents.filter(inc => {
         const status = (inc.status || 'New').toLowerCase().trim();
         return status === 'new' || status === 'pending';
       }).length;
       
-      const incidentBadge = document.getElementById('incidentCount');
-      if (incidentBadge) {
-        // Always update, even if other scripts might have changed it
-        incidentBadge.textContent = pendingCount;
-        // Hide badge if count is 0
-        if (pendingCount === 0) {
-          incidentBadge.style.display = 'none';
-        } else {
-          incidentBadge.style.display = 'flex';
-        }
+      // Update badge
+      incidentBadge.textContent = pendingCount;
+      // Hide badge if count is 0
+      if (pendingCount === 0) {
+        incidentBadge.style.display = 'none';
+      } else {
+        incidentBadge.style.display = 'flex';
       }
     } catch (error) {
       console.error('Error updating incident count:', error);
@@ -96,6 +149,41 @@
         incidentBadge.style.display = 'none';
       }
     }
+  }
+  
+  /**
+   * Get current user (try multiple methods)
+   */
+  function getCurrentUser() {
+    // Try to get from meta tag
+    const metaUser = document.querySelector('meta[name="current-user"]');
+    if (metaUser) {
+      return metaUser.getAttribute('content');
+    }
+    
+    // Try to get from window variable (set by PHP)
+    if (window.CURRENT_USER) {
+      return window.CURRENT_USER;
+    }
+    
+    // Try to get from data attribute
+    const userElement = document.querySelector('[data-current-user]');
+    if (userElement) {
+      return userElement.getAttribute('data-current-user');
+    }
+    
+    // Fallback: try to extract from navbar
+    const navbarUser = document.querySelector('.navbar .nav-link.dropdown-toggle');
+    if (navbarUser) {
+      const text = navbarUser.textContent.trim();
+      // Extract username (before badge)
+      const match = text.match(/^(.+?)\s*Client|Admin/i);
+      if (match && match[1]) {
+        return match[1].trim();
+      }
+    }
+    
+    return '';
   }
 
   /**
