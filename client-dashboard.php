@@ -55,8 +55,8 @@ if (isset($_GET['logout'])) {
     <div class="sidebar" id="sidebar">
       <div class="sidebar-header">
         <div class="sidebar-brand">
-          <i class="bi bi-shield-exclamation me-2"></i>
-          <span id="brandText">MDRRMO</span>
+          <img src="assets/icon.png" alt="MDRRMO Logo" style="max-width: 32px; height: auto; margin-right: 0.5rem;" />
+          <span id="brandText">MDRRMO Client</span>
         </div>
         <button class="sidebar-toggle" id="sidebarToggle">
           <i class="bi bi-list"></i>
@@ -74,19 +74,26 @@ if (isset($_GET['logout'])) {
             <div class="nav-text">Dashboard</div>
           </a>
           
+          <a href="client/organization-chart.php" class="nav-item">
+            <div class="nav-icon">
+              <i data-filled="fi fi-sr-sitemap" data-unfilled="fi fi-rr-sitemap"></i>
+            </div>
+            <div class="nav-text">Organization Chart</div>
+          </a>
+          
           <a href="client/incidents.php" class="nav-item" id="incidentsLink">
             <div class="nav-icon">
               <i data-filled="fi fi-sr-light-emergency-on" data-unfilled="fi fi-rr-light-emergency-on"></i>
             </div>
-            <div class="nav-text">My Incidents</div>
+            <div class="nav-text">Incidents</div>
             <div class="nav-badge warning" id="incidentCount">0</div>
           </a>
           
-          <a href="map-view.php" class="nav-item">
+          <a href="client/activities.php" class="nav-item">
             <div class="nav-icon">
-              <i data-filled="fi fi-sr-map-marker" data-unfilled="fi fi-rr-map-marker"></i>
+              <i data-filled="fi fi-sr-calendar-check" data-unfilled="fi fi-rr-calendar-check"></i>
             </div>
-            <div class="nav-text">Map View</div>
+            <div class="nav-text">Activities</div>
           </a>
         </div>
       </div>
@@ -95,11 +102,25 @@ if (isset($_GET['logout'])) {
     <!-- Main Content -->
     <div class="main-content" id="mainContent">
       <!-- Top Navigation -->
-      <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm">
+      <nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm position-relative">
         <div class="container-fluid">
           <button class="btn btn-link d-lg-none" id="mobileMenuToggle">
             <i class="bi bi-list fs-4"></i>
           </button>
+          
+          <!-- Centered Title -->
+          <div class="position-absolute start-50 translate-middle-x d-none d-lg-block">
+            <span class="navbar-text welcome-text fw-bold" style="font-size: 1.1rem; color: #dc3545;">
+              MDRRMO LAPUYAN
+            </span>
+          </div>
+          
+          <!-- Mobile Title -->
+          <div class="d-lg-none mx-auto">
+            <span class="navbar-text welcome-text fw-bold" style="font-size: 1rem; color: #dc3545;">
+              MDRRMO LAPUYAN
+            </span>
+          </div>
           
           <div class="navbar-nav ms-auto">
             <div class="nav-item dropdown">
@@ -120,224 +141,8 @@ if (isset($_GET['logout'])) {
       </nav>
 
       <main class="container-fluid py-4">
-        <!-- Page Header -->
-        <div class="row mb-4">
-          <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center">
-              <div>
-                <h1 class="h3 mb-1">Dashboard</h1>
-                <p class="text-muted mb-0">Welcome back, <?php echo htmlspecialchars(getCurrentUser()); ?>! Report and view incidents.</p>
-              </div>
-              <div class="d-flex gap-2">
-                <button class="btn btn-outline-secondary" id="btnRefresh">
-                  <i class="bi bi-arrow-clockwise"></i> Refresh
-                </button>
-                <a href="client/incidents.php" class="btn btn-primary">
-                  <i class="bi bi-eye"></i> View My Incidents
-                </a>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Stats Cards -->
-        <div class="row mb-4">
-          <div class="col-xl-4 col-md-6 mb-3">
-            <div class="card border-0 shadow-sm">
-              <div class="card-body">
-                <div class="d-flex align-items-center">
-                  <div class="flex-shrink-0">
-                    <div class="bg-primary bg-opacity-10 p-3 rounded">
-                      <i class="bi bi-flag text-primary fs-4"></i>
-                    </div>
-                  </div>
-                  <div class="flex-grow-1 ms-3">
-                    <h6 class="card-title text-muted mb-1">My Reported Incidents</h6>
-                    <h4 class="mb-0" id="myIncidents">0</h4>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <div class="col-xl-4 col-md-6 mb-3">
-            <div class="card border-0 shadow-sm">
-              <div class="card-body">
-                <div class="d-flex align-items-center">
-                  <div class="flex-shrink-0">
-                    <div class="bg-warning bg-opacity-10 p-3 rounded">
-                      <i class="bi bi-exclamation-triangle text-warning fs-4"></i>
-                    </div>
-                  </div>
-                  <div class="flex-grow-1 ms-3">
-                    <h6 class="card-title text-muted mb-1">Pending</h6>
-                    <h4 class="mb-0" id="pendingIncidents">0</h4>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <div class="col-xl-4 col-md-6 mb-3">
-            <div class="card border-0 shadow-sm">
-              <div class="card-body">
-                <div class="d-flex align-items-center">
-                  <div class="flex-shrink-0">
-                    <div class="bg-success bg-opacity-10 p-3 rounded">
-                      <i class="bi bi-check-circle text-success fs-4"></i>
-                    </div>
-                  </div>
-                  <div class="flex-grow-1 ms-3">
-                    <h6 class="card-title text-muted mb-1">Resolved</h6>
-                    <h4 class="mb-0" id="resolvedIncidents">0</h4>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="row g-4">
-          <!-- My Incidents List -->
-          <div class="col-12 col-lg-8">
-            <div class="card border-0 shadow-sm">
-              <div class="card-header bg-white border-0">
-                <div class="d-flex justify-content-between align-items-center">
-                  <h5 class="mb-0">My Recent Incidents</h5>
-                  <div class="d-flex gap-2">
-                    <select id="filterStatus" class="form-select form-select-sm" style="width: 150px">
-                      <option value="All" selected>All statuses</option>
-                      <option value="New">New</option>
-                      <option value="Dispatched">Dispatched</option>
-                      <option value="Resolved">Resolved</option>
-                      <option value="Cancelled">Cancelled</option>
-                    </select>
-                    <a href="client/incidents.php" class="btn btn-sm btn-outline-primary">
-                      <i class="bi bi-eye"></i> View All
-                    </a>
-                  </div>
-                </div>
-              </div>
-              <div class="card-body">
-                <div id="incidentList" class="d-grid gap-3"></div>
-              </div>
-            </div>
-          </div>
-
-          <!-- New Incident Form -->
-          <div class="col-12 col-lg-4">
-            <div class="card border-0 shadow-sm">
-              <div class="card-header bg-white border-0">
-                <div class="d-flex align-items-center justify-content-between">
-                  <h5 class="mb-0 d-flex align-items-center gap-2">
-                    <i class="bi bi-plus-circle text-primary"></i> Report New Incident
-                  </h5>
-                  <span class="badge bg-secondary" id="clockBadge">--:--</span>
-                </div>
-              </div>
-              <div class="card-body">
-                <form id="incidentForm" class="needs-validation" novalidate>
-                  <div class="row g-2">
-                    <div class="col-12 col-md-6">
-                      <label for="incidentType" class="form-label">Type</label>
-                      <select id="incidentType" class="form-select" required>
-                        <option value="" selected disabled>Choose...</option>
-                        <option value="Fire">Fire</option>
-                        <option value="Flood">Flood</option>
-                        <option value="Road Accident">Road Accident</option>
-                        <option value="Medical">Medical</option>
-                        <option value="Landslide">Landslide</option>
-                        <option value="Earthquake">Earthquake</option>
-                        <option value="Power Outage">Power Outage</option>
-                        <option value="Other">Other</option>
-                      </select>
-                      <div class="invalid-feedback">Please select a type.</div>
-                    </div>
-                    <div class="col-12 col-md-6">
-                      <label for="severity" class="form-label">Severity</label>
-                      <select id="severity" class="form-select" required>
-                        <option value="" selected disabled>Choose...</option>
-                        <option value="Low">Low</option>
-                        <option value="Moderate">Moderate</option>
-                        <option value="High">High</option>
-                        <option value="Critical">Critical</option>
-                      </select>
-                      <div class="invalid-feedback">Please select severity.</div>
-                    </div>
-                    <div class="col-12">
-                      <label for="description" class="form-label">Description</label>
-                      <textarea id="description" class="form-control" rows="3" placeholder="Brief details (what/where/obstructions/injuries)" required></textarea>
-                      <div class="invalid-feedback">Please enter a description.</div>
-                    </div>
-                    <div class="col-12">
-                      <label class="form-label d-flex align-items-center gap-2"
-                        ><i class="bi bi-camera"></i> Photo (geotag preferred)</label
-                      >
-                      <input
-                        id="photo"
-                        type="file"
-                        class="form-control"
-                        accept="image/*"
-                        capture="environment"
-                        required
-                      />
-                      <div class="invalid-feedback">Photo is required.</div>
-                      <div class="form-text" id="photoMeta">Awaiting image...</div>
-                      <div class="ratio ratio-16x9 mt-2 border rounded overflow-hidden bg-body" id="photoPreviewWrap">
-                        <img id="photoPreview" alt="Preview" class="object-fit-cover w-100 h-100 d-none" />
-                        <div class="d-flex align-items-center justify-content-center text-muted" id="photoPlaceholder">
-                          <div class="text-center small">
-                            <i class="bi bi-image fs-3 d-block mb-1"></i>
-                            Photo preview
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div class="col-12">
-                      <div class="d-flex align-items-center justify-content-between mb-1">
-                        <label class="form-label mb-0 d-flex align-items-center gap-2"
-                          ><i class="bi bi-geo-alt"></i> Location</label
-                        >
-                        <div class="btn-group btn-group-sm" role="group">
-                          <button type="button" id="btnUseMyLocation" class="btn btn-outline-primary">
-                            <i class="bi bi-crosshair"></i> Use my location
-                          </button>
-                          <button type="button" id="btnClearLocation" class="btn btn-outline-secondary">
-                            <i class="bi bi-x"></i>
-                          </button>
-                        </div>
-                      </div>
-                      <div class="row g-2 align-items-center mb-2">
-                        <div class="col-6">
-                          <input id="lat" class="form-control" placeholder="Latitude" readonly />
-                        </div>
-                        <div class="col-6">
-                          <input id="lng" class="form-control" placeholder="Longitude" readonly />
-                        </div>
-                      </div>
-                      <div id="locationNote" class="small text-muted mb-2">No location yet</div>
-                      
-                      <!-- Location Map -->
-                      <div class="mt-2">
-                        <div id="locationMap" class="rounded border" style="height: 200px; width: 100%;"></div>
-                        <div class="form-text small mt-1">Click on the map to set location or use the buttons above</div>
-                      </div>
-                    </div>
-
-                    <div class="col-12 d-grid gap-2 mt-2">
-                      <button class="btn btn-danger" id="btnAddIncident" type="submit">
-                        <i class="bi bi-plus-circle"></i> Report Incident
-                      </button>
-                      <button class="btn btn-outline-secondary" id="btnResetForm" type="button">
-                        <i class="bi bi-arrow-counterclockwise"></i> Reset
-                      </button>
-                    </div>
-                  </div>
-                </form>
-              </div>
-            </div>
-          </div>
+        <div class="d-flex align-items-center justify-content-center" style="min-height: calc(100vh - 200px);">
+          <img src="assets/icon.png" alt="MDRRMO Logo" class="img-fluid" style="max-width: 70%; max-height: 70vh; width: auto; height: auto; object-fit: contain;" />
         </div>
       </main>
 
@@ -355,26 +160,28 @@ if (isset($_GET['logout'])) {
       crossorigin="anonymous"
     ></script>
 
-    <!-- Leaflet CSS -->
-    <link
-      rel="stylesheet"
-      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
-      crossorigin=""
-    />
-
-    <!-- Leaflet JS -->
-    <script
-      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-      crossorigin=""
-    ></script>
-
-    <!-- EXIF reader -->
-    <script src="https://cdn.jsdelivr.net/npm/exif-js@2.3.0/exif.min.js"></script>
-
     <script src="scripts/sidebar-counts.js?v=<?php echo urlencode((string) @filemtime(__DIR__ . '/scripts/sidebar-counts.js')); ?>"></script>
-    <script src="scripts/dashboard.js"></script>
+    <script src="scripts/dashboard.js?v=<?php echo urlencode((string) @filemtime(__DIR__ . '/scripts/dashboard.js')); ?>"></script>
+    <style>
+      /* Dashboard-specific styles */
+      .welcome-text {
+        font-size: 0.95rem;
+      }
+      
+      .welcome-text strong {
+        color: #0d6efd;
+      }
+      
+      @media (max-width: 991px) {
+        .welcome-text {
+          font-size: 0.85rem;
+        }
+        
+        .welcome-text .text-muted {
+          display: none;
+        }
+      }
+    </style>
     <script>
       document.addEventListener('DOMContentLoaded', function () {
         document.querySelectorAll('.sidebar .nav-item').forEach(function (item) {
