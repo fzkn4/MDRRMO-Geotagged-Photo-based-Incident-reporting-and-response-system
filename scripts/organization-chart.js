@@ -6,7 +6,10 @@
 (function() {
   'use strict';
 
-  const STORAGE_KEY = 'mdrrmo_organization_v1';
+  // Determine API URL based on current page location
+  const API_URL = window.location.pathname.includes('/admin/') 
+    ? '../api/organization-personnel.php' 
+    : 'api/organization-personnel.php';
   
   // DOM Elements
   const btnRefresh = document.getElementById('btnRefresh');
@@ -54,13 +57,13 @@
 
     // CEO checkbox toggle
     if (isCEOCheckbox) {
-      isCEOCheckbox.addEventListener('change', function() {
+      isCEOCheckbox.addEventListener('change', async function() {
         if (this.checked) {
-          reportsToContainer.style.display = 'none';
-          personnelReportsToSelect.value = '';
+          if (reportsToContainer) reportsToContainer.style.display = 'none';
+          if (personnelReportsToSelect) personnelReportsToSelect.value = '';
         } else {
-          reportsToContainer.style.display = 'block';
-          updateReportsToDropdown();
+          if (reportsToContainer) reportsToContainer.style.display = 'block';
+          await updateReportsToDropdown();
         }
       });
     }
@@ -72,21 +75,21 @@
 
     // Update dropdown when modal is shown
     if (addPersonnelModal) {
-      addPersonnelModal.addEventListener('show.bs.modal', function(e) {
+      addPersonnelModal.addEventListener('show.bs.modal', async function(e) {
         // Check if this is an edit action (triggered by edit button)
         const editButton = e.relatedTarget;
         if (editButton && editButton.hasAttribute('data-personnel-id')) {
           // Edit mode
           editingPersonnelId = editButton.getAttribute('data-personnel-id');
-          loadPersonnelForEdit(editingPersonnelId);
+          await loadPersonnelForEdit(editingPersonnelId);
           if (addPersonnelModalLabel) addPersonnelModalLabel.innerHTML = '<i class="bi bi-pencil me-2"></i>Edit Personnel';
           if (addPersonnelSubmitBtn) addPersonnelSubmitBtn.innerHTML = '<i class="bi bi-check-circle me-1"></i> Update Personnel';
         } else {
           // Add mode
           editingPersonnelId = null;
-          updateReportsToDropdown();
-          addPersonnelForm.reset();
-          reportsToContainer.style.display = 'block';
+          await updateReportsToDropdown();
+          if (addPersonnelForm) addPersonnelForm.reset();
+          if (reportsToContainer) reportsToContainer.style.display = 'block';
           if (isCEOCheckbox) isCEOCheckbox.checked = false;
           if (photoPreviewContainer) photoPreviewContainer.style.display = 'none';
           if (personnelPhotoInput) personnelPhotoInput.value = '';
@@ -133,36 +136,35 @@
   }
 
   /**
-   * Load personnel from localStorage
+   * Fetch personnel from API
    */
-  function loadPersonnel() {
+  async function fetchPersonnel() {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      return raw ? JSON.parse(raw) : [];
+      const response = await fetch(API_URL);
+      if (!response.ok) {
+        throw new Error('Failed to fetch personnel data');
+      }
+      const data = await response.json();
+      return Array.isArray(data) ? data : [];
     } catch (error) {
-      console.error('Error loading personnel:', error);
+      console.error('Error fetching personnel:', error);
       return [];
     }
   }
 
   /**
-   * Save personnel to localStorage
+   * Load personnel from API (backward compatibility wrapper)
    */
-  function savePersonnel(personnel) {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(personnel));
-    } catch (error) {
-      console.error('Error saving personnel:', error);
-      alert('Error saving personnel data');
-    }
+  async function loadPersonnel() {
+    return await fetchPersonnel();
   }
 
   /**
    * Load personnel data for editing
    */
-  function loadPersonnelForEdit(personnelId) {
-    const personnel = loadPersonnel();
-    const person = personnel.find(p => p.id === personnelId);
+  async function loadPersonnelForEdit(personnelId) {
+    const personnel = await fetchPersonnel();
+    const person = personnel.find(p => p.id === personnelId || p.id.toString() === personnelId.toString());
     
     if (!person) {
       alert('Personnel not found');
@@ -175,13 +177,13 @@
     if (isCEOCheckbox) {
       isCEOCheckbox.checked = person.isCEO;
       if (person.isCEO) {
-        reportsToContainer.style.display = 'none';
+        if (reportsToContainer) reportsToContainer.style.display = 'none';
         if (personnelReportsToSelect) personnelReportsToSelect.value = '';
       } else {
-        reportsToContainer.style.display = 'block';
+        if (reportsToContainer) reportsToContainer.style.display = 'block';
         updateReportsToDropdown();
         if (personnelReportsToSelect && person.reportsTo) {
-          personnelReportsToSelect.value = person.reportsTo;
+          personnelReportsToSelect.value = person.reportsTo.toString();
         }
       }
     }
@@ -206,7 +208,7 @@
   /**
    * Handle add/edit personnel form submission
    */
-  function handleAddPersonnel(e) {
+  async function handleAddPersonnel(e) {
     e.preventDefault();
     
     const name = personnelNameInput.value.trim();
@@ -220,10 +222,10 @@
       return;
     }
 
-    const personnel = loadPersonnel();
     let existingPerson = null;
     if (editingPersonnelId) {
-      existingPerson = personnel.find(p => p.id === editingPersonnelId);
+      const personnel = await fetchPersonnel();
+      existingPerson = personnel.find(p => p.id === editingPersonnelId || p.id.toString() === editingPersonnelId.toString());
       if (!existingPerson) {
         alert('Personnel not found');
         return;
@@ -255,77 +257,94 @@
 
     // Check if CEO already exists (only for new personnel or if changing to CEO)
     if (isCEO) {
-      const existingCEO = personnel.find(p => p.isCEO && p.id !== editingPersonnelId);
+      const personnel = await fetchPersonnel();
+      const existingCEO = personnel.find(p => p.isCEO && (p.id !== editingPersonnelId && p.id.toString() !== editingPersonnelId.toString()));
       if (existingCEO) {
         if (!confirm(`A CEO already exists (${existingCEO.name}). Replace with this person?`)) {
           return;
         }
-        // Remove existing CEO's CEO status
-        const ceoIndex = personnel.findIndex(p => p.id === existingCEO.id);
-        if (ceoIndex !== -1) {
-          personnel[ceoIndex].isCEO = false;
-        }
       }
     }
 
-    if (editingPersonnelId) {
-      // Update existing personnel
-      const index = personnel.findIndex(p => p.id === editingPersonnelId);
-      if (index !== -1) {
-        personnel[index] = {
-          ...personnel[index],
-          name: name,
-          role: role,
-          isCEO: isCEO,
-          reportsTo: reportsTo || null,
-          photoDataUrl: photoDataUrl
-        };
-        savePersonnel(personnel);
-      }
-    } else {
-      // Create new personnel object
-      const newPersonnel = {
-        id: generateId(),
+    // Disable submit button during save
+    if (addPersonnelSubmitBtn) {
+      addPersonnelSubmitBtn.disabled = true;
+      const originalText = addPersonnelSubmitBtn.innerHTML;
+      addPersonnelSubmitBtn.innerHTML = '<i class="bi bi-hourglass-split me-1"></i> Saving...';
+    }
+
+    try {
+      const payload = {
         name: name,
         role: role,
         isCEO: isCEO,
         reportsTo: reportsTo || null,
-        photoDataUrl: photoDataUrl,
-        createdAt: Date.now()
+        photoDataUrl: photoDataUrl
       };
 
-      // Add to storage
-      personnel.push(newPersonnel);
-      savePersonnel(personnel);
+      let response;
+      if (editingPersonnelId) {
+        // Update existing personnel
+        payload.id = editingPersonnelId;
+        response = await fetch(API_URL, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        });
+      } else {
+        // Create new personnel
+        response = await fetch(API_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        });
+      }
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to save personnel');
+      }
+
+      // Close modal and refresh chart
+      const bsModal = bootstrap.Modal.getInstance(addPersonnelModal);
+      if (bsModal) bsModal.hide();
+      
+      editingPersonnelId = null;
+      await loadAndRenderChart();
+    } catch (error) {
+      console.error('Error saving personnel:', error);
+      alert('Error saving personnel: ' + error.message);
+    } finally {
+      // Re-enable submit button
+      if (addPersonnelSubmitBtn) {
+        addPersonnelSubmitBtn.disabled = false;
+        addPersonnelSubmitBtn.innerHTML = editingPersonnelId 
+          ? '<i class="bi bi-check-circle me-1"></i> Update Personnel'
+          : '<i class="bi bi-check-circle me-1"></i> Add Personnel';
+      }
     }
-
-    // Close modal and refresh chart
-    const bsModal = bootstrap.Modal.getInstance(addPersonnelModal);
-    if (bsModal) bsModal.hide();
-    
-    editingPersonnelId = null;
-    loadAndRenderChart();
-  }
-
-  /**
-   * Generate unique ID
-   */
-  function generateId() {
-    return 'personnel_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
   }
 
   /**
    * Update reports to dropdown
    */
-  function updateReportsToDropdown() {
-    const personnel = loadPersonnel();
+  async function updateReportsToDropdown() {
+    if (!personnelReportsToSelect) return;
+    
+    const personnel = await fetchPersonnel();
     personnelReportsToSelect.innerHTML = '<option value="">Select supervisor...</option>';
     
     // Exclude the person being edited (can't report to themselves)
     personnel.forEach(person => {
-      if (person.id !== editingPersonnelId) {
+      const personId = person.id.toString();
+      const editingId = editingPersonnelId ? editingPersonnelId.toString() : null;
+      if (personId !== editingId) {
         const option = document.createElement('option');
-        option.value = person.id;
+        option.value = personId;
         option.textContent = `${person.name} - ${person.role}`;
         personnelReportsToSelect.appendChild(option);
       }
@@ -350,11 +369,15 @@
 
     // Build tree recursively
     function buildTree(personId) {
-      const person = personnel.find(p => p.id === personId);
+      const personIdStr = personId.toString();
+      const person = personnel.find(p => p.id.toString() === personIdStr || p.id === personId);
       if (!person) return null;
 
       const children = personnel
-        .filter(p => p.reportsTo === personId)
+        .filter(p => {
+          const reportsTo = p.reportsTo ? p.reportsTo.toString() : null;
+          return reportsTo === personIdStr || reportsTo === personId;
+        })
         .map(child => buildTree(child.id))
         .filter(Boolean)
         .sort((a, b) => {
@@ -374,34 +397,34 @@
   /**
    * Render organizational chart
    */
-  function renderChart() {
-    const personnel = loadPersonnel();
+  async function renderChart() {
+    const personnel = await fetchPersonnel();
     
     if (personnel.length === 0) {
-      orgChartContainer.style.display = 'none';
-      orgChartEmpty.style.display = 'block';
-      orgChartLoading.style.display = 'none';
+      if (orgChartContainer) orgChartContainer.style.display = 'none';
+      if (orgChartEmpty) orgChartEmpty.style.display = 'block';
+      if (orgChartLoading) orgChartLoading.style.display = 'none';
       return;
     }
 
     const tree = buildHierarchy(personnel);
     
     if (!tree) {
-      orgChartContainer.style.display = 'none';
-      orgChartEmpty.style.display = 'block';
-      orgChartLoading.style.display = 'none';
+      if (orgChartContainer) orgChartContainer.style.display = 'none';
+      if (orgChartEmpty) orgChartEmpty.style.display = 'block';
+      if (orgChartLoading) orgChartLoading.style.display = 'none';
       return;
     }
 
-    orgChartEmpty.style.display = 'none';
-    orgChartLoading.style.display = 'none';
-    orgChartContainer.style.display = 'block';
+    if (orgChartEmpty) orgChartEmpty.style.display = 'none';
+    if (orgChartLoading) orgChartLoading.style.display = 'none';
+    if (orgChartContainer) orgChartContainer.style.display = 'block';
 
     // Clear existing chart
-    orgChart.innerHTML = '';
+    if (orgChart) orgChart.innerHTML = '';
 
     // Render tree
-    renderNode(tree, orgChart, 0);
+    if (orgChart) renderNode(tree, orgChart, 0);
   }
 
   /**
@@ -491,11 +514,9 @@
   /**
    * Load and render chart
    */
-  function loadAndRenderChart() {
-    orgChartLoading.style.display = 'block';
-    setTimeout(() => {
-      renderChart();
-    }, 300);
+  async function loadAndRenderChart() {
+    if (orgChartLoading) orgChartLoading.style.display = 'block';
+    await renderChart();
   }
 
 })();
