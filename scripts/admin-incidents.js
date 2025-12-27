@@ -6,7 +6,7 @@
 (function() {
   'use strict';
 
-  const STORAGE_KEY = 'mdrrmo_incidents_v1';
+  const API_URL = '../api/incidents.php';
   
   // DOM Elements
   const incidentsList = document.getElementById('incidentsList');
@@ -14,6 +14,9 @@
   const btnRefresh = document.getElementById('btnRefresh');
   const loadingState = document.getElementById('incidentsLoading');
   const emptyState = document.getElementById('incidentsEmpty');
+  
+  // Store incidents in memory for quick access
+  let allIncidents = [];
 
   // Initialize when DOM is ready
   document.addEventListener('DOMContentLoaded', function() {
@@ -48,23 +51,52 @@
       loadAndDisplayIncidents();
     });
 
-    // Listen for storage changes (if incidents are updated in another tab)
-    window.addEventListener('storage', function(e) {
-      if (e.key === STORAGE_KEY) {
-        loadAndDisplayIncidents();
-      }
-    });
+    // Listen for custom events when incidents are added/updated
   }
 
   /**
-   * Load and display incidents from localStorage
+   * Load and display incidents from database API
    */
-  function loadAndDisplayIncidents() {
+  async function loadAndDisplayIncidents() {
     try {
-      const incidents = loadIncidents();
-      const statusFilter = filterStatus ? filterStatus.value : 'All';
+      // Show loading state
+      if (loadingState) loadingState.style.display = 'flex';
+      if (emptyState) emptyState.style.display = 'none';
+      if (incidentsList) incidentsList.innerHTML = '';
       
-      // Filter incidents by status
+      // Fetch incidents from API
+      const statusFilter = filterStatus ? filterStatus.value : 'All';
+      const url = statusFilter !== 'All' 
+        ? `${API_URL}?status=${encodeURIComponent(statusFilter)}`
+        : API_URL;
+      
+      let incidents = [];
+      
+      try {
+        const response = await fetch(url);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        // Check if response is an error object
+        if (data.error) {
+          throw new Error(data.error);
+        }
+        
+        incidents = Array.isArray(data) ? data : [];
+        console.info(`Loaded ${incidents.length} incidents from database`);
+      } catch (apiError) {
+        console.error('Failed to fetch from database API:', apiError);
+        incidents = [];
+      }
+      
+      // Store incidents for quick access
+      allIncidents = incidents;
+      
+      // Filter by status on client side as well (API handles it, but double-check for consistency)
       let filteredIncidents = incidents;
       if (statusFilter !== 'All') {
         filteredIncidents = incidents.filter(inc => {
@@ -87,12 +119,12 @@
             return incStatus === 'decline' || incStatus === 'declined';
           }
           
-          // Exact match for other statuses (for backward compatibility)
+          // Exact match for other statuses
           return incStatus === filterStatusLower;
         });
       }
 
-      // Sort by newest first
+      // Sort by newest first (should already be sorted by API, but ensure it)
       filteredIncidents.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
 
       // Hide loading state
@@ -129,8 +161,23 @@
     } catch (error) {
       console.error('Error loading incidents:', error);
       if (loadingState) loadingState.style.display = 'none';
-      if (emptyState) emptyState.style.display = 'block';
+      if (emptyState) emptyState.style.display = 'flex';
       if (incidentsList) incidentsList.innerHTML = '';
+      
+      // Show error message in empty state
+      const emptyStateEl = document.getElementById('incidentsEmpty');
+      if (emptyStateEl) {
+        emptyStateEl.innerHTML = `
+          <div class="mb-4">
+            <i class="bi bi-exclamation-triangle" style="font-size: 4rem; color: #dc3545;"></i>
+          </div>
+          <h5 class="fw-semibold mb-2 text-danger">Error Loading Incidents</h5>
+          <p class="text-muted mb-4">Failed to load incidents from the database. Please try again.</p>
+          <button class="btn btn-primary" onclick="location.reload()">
+            <i class="bi bi-arrow-clockwise me-2"></i> Retry
+          </button>
+        `;
+      }
     }
   }
 
@@ -307,27 +354,19 @@
   }
 
   /**
-   * Load incidents from localStorage
+   * Get incident by ID from cached data or fetch if needed
    */
-  function loadIncidents() {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      return raw ? JSON.parse(raw) : [];
-    } catch (error) {
-      console.error('Error loading incidents:', error);
-      return [];
+  async function getIncidentById(incidentId) {
+    // First try cached data
+    let incident = allIncidents.find(inc => inc.id === incidentId);
+    
+    // If not found, fetch fresh data
+    if (!incident) {
+      await loadAndDisplayIncidents();
+      incident = allIncidents.find(inc => inc.id === incidentId);
     }
-  }
-
-  /**
-   * Save incidents to localStorage
-   */
-  function saveIncidents(incidents) {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(incidents));
-    } catch (error) {
-      console.error('Error saving incidents:', error);
-    }
+    
+    return incident;
   }
 
   /**
@@ -342,10 +381,9 @@
   /**
    * Global functions for onclick handlers
    */
-  window.viewReportImage = function(incidentId) {
+  window.viewReportImage = async function(incidentId) {
     try {
-      const incidents = loadIncidents();
-      const incident = incidents.find(inc => inc.id === incidentId);
+      const incident = await getIncidentById(incidentId);
       if (incident && incident.photoDataUrl) {
         // Create and show modal
         const modal = document.createElement('div');
@@ -371,6 +409,7 @@
       }
     } catch (error) {
       console.error('Error viewing report image:', error);
+      alert('Error loading incident photo');
     }
   };
 
@@ -379,10 +418,9 @@
     alert(`Location: ${lat.toFixed(6)}, ${lng.toFixed(6)}\n\nMap view integration coming soon.`);
   };
 
-  window.viewIncidentDetails = function(incidentId) {
+  window.viewIncidentDetails = async function(incidentId) {
     try {
-      const incidents = loadIncidents();
-      const incident = incidents.find(inc => inc.id === incidentId);
+      const incident = await getIncidentById(incidentId);
       if (!incident) {
         alert('Incident not found');
         return;
@@ -413,10 +451,9 @@ ${incident.description || 'No description provided'}
     }
   };
 
-  window.downloadIncidentPhoto = function(incidentId) {
+  window.downloadIncidentPhoto = async function(incidentId) {
     try {
-      const incidents = loadIncidents();
-      const incident = incidents.find(inc => inc.id === incidentId);
+      const incident = await getIncidentById(incidentId);
       if (!incident) {
         alert('Incident not found');
         return;
@@ -435,23 +472,31 @@ ${incident.description || 'No description provided'}
     }
   };
 
-  window.updateIncidentStatus = function(incidentId, newStatus) {
+  window.updateIncidentStatus = async function(incidentId, newStatus) {
     try {
-      const incidents = loadIncidents();
-      const incidentIndex = incidents.findIndex(inc => inc.id === incidentId);
-      
-      if (incidentIndex === -1) {
-        alert('Incident not found');
-        return;
-      }
-
       if (!confirm(`Change status to "${newStatus}"?`)) {
         return;
       }
 
-      incidents[incidentIndex].status = newStatus;
-      saveIncidents(incidents);
-      loadAndDisplayIncidents();
+      // Update via API
+      const response = await fetch(API_URL, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id: incidentId,
+          status: newStatus
+        })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+      }
+      
+      // Reload incidents to reflect the change
+      await loadAndDisplayIncidents();
 
       // Dispatch events to update other pages and sidebar counts
       window.dispatchEvent(new CustomEvent('incidentUpdated', { 
@@ -462,7 +507,7 @@ ${incident.description || 'No description provided'}
       window.dispatchEvent(new CustomEvent('incidentAdded'));
     } catch (error) {
       console.error('Error updating incident status:', error);
-      alert('Error updating incident status');
+      alert('Error updating incident status: ' + error.message);
     }
   };
 

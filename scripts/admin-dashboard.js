@@ -6,7 +6,7 @@
 (function() {
   'use strict';
 
-  const STORAGE_KEY = 'mdrrmo_incidents_v1';
+  const API_URL = 'api/incidents.php';
   const MAX_PENDING_DISPLAY = 6; // Maximum pending reports to display on dashboard
 
   // Initialize dashboard when DOM is ready
@@ -18,10 +18,10 @@
   /**
    * Initialize dashboard - load all statistics
    */
-  function initializeDashboard() {
-    loadDashboardStats();
-    loadPendingReports();
-    updateSidebarCounts();
+  async function initializeDashboard() {
+    await loadDashboardStats();
+    await loadPendingReports();
+    await updateSidebarCounts();
   }
 
   /**
@@ -78,18 +78,30 @@
       updateElement('pendingUsers', 0);
     }
 
-    // Load incident statistics from localStorage
+    // Load incident statistics from database
     loadIncidentStats();
   }
 
   /**
-   * Load incident statistics from localStorage
+   * Load incident statistics from database API
    */
-  function loadIncidentStats() {
+  async function loadIncidentStats() {
     try {
-      const incidents = loadIncidents();
+      const response = await fetch(API_URL);
+      if (!response.ok) {
+        throw new Error('Failed to fetch incidents');
+      }
+      const data = await response.json();
+      if (data.error) {
+        throw new Error(data.error);
+      }
+      
+      const incidents = Array.isArray(data) ? data : [];
       const totalIncidents = incidents.length;
-      const pendingIncidents = incidents.filter(inc => inc.status === 'New' || inc.status === 'pending').length;
+      const pendingIncidents = incidents.filter(inc => {
+        const status = (inc.status || 'New').toLowerCase().trim();
+        return status === 'new' || status === 'pending';
+      }).length;
       
       // Update incident statistics
       updateElement('totalIncidents', totalIncidents);
@@ -118,19 +130,31 @@
   }
 
   /**
-   * Load and display pending reports
+   * Load and display pending reports from database API
    */
-  function loadPendingReports() {
+  async function loadPendingReports() {
     const loadingEl = document.getElementById('pendingReportsLoading');
     const emptyEl = document.getElementById('pendingReportsEmpty');
     const listEl = document.getElementById('pendingReportsList');
     const viewMoreEl = document.getElementById('pendingReportsViewMore');
 
     try {
-      const incidents = loadIncidents();
+      const response = await fetch(API_URL);
+      if (!response.ok) {
+        throw new Error('Failed to fetch incidents');
+      }
+      const data = await response.json();
+      if (data.error) {
+        throw new Error(data.error);
+      }
+      
+      const incidents = Array.isArray(data) ? data : [];
       const pendingIncidents = incidents
-        .filter(inc => inc.status === 'New' || inc.status === 'pending')
-        .sort((a, b) => b.createdAt - a.createdAt) // Sort by newest first
+        .filter(inc => {
+          const status = (inc.status || 'New').toLowerCase().trim();
+          return status === 'new' || status === 'pending';
+        })
+        .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)) // Sort by newest first
         .slice(0, MAX_PENDING_DISPLAY);
 
       // Hide loading
@@ -151,7 +175,10 @@
         }
 
         // Show view more if there are more incidents than displayed
-        const allPending = incidents.filter(inc => inc.status === 'New' || inc.status === 'pending');
+        const allPending = incidents.filter(inc => {
+          const status = (inc.status || 'New').toLowerCase().trim();
+          return status === 'new' || status === 'pending';
+        });
         if (viewMoreEl) {
           viewMoreEl.style.display = allPending.length > MAX_PENDING_DISPLAY ? 'block' : 'none';
         }
@@ -327,18 +354,6 @@
     return icons[type] || 'bi bi-exclamation-octagon';
   }
 
-  /**
-   * Load incidents from localStorage
-   */
-  function loadIncidents() {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      return raw ? JSON.parse(raw) : [];
-    } catch (error) {
-      console.error('Error loading incidents:', error);
-      return [];
-    }
-  }
 
   /**
    * Update element text content
@@ -363,22 +378,27 @@
    * Update sidebar counts
    * Note: sidebar-counts.js handles the main updates, this is for dashboard-specific stats
    */
-  function updateSidebarCounts() {
+  async function updateSidebarCounts() {
     // Delegate to sidebar-counts.js if available
     if (window.updateSidebarCounts && typeof window.updateSidebarCounts === 'function') {
       window.updateSidebarCounts();
     } else {
-      // Fallback: update locally
+      // Fallback: update locally from API
       try {
-        const incidents = loadIncidents();
-        const pendingCount = incidents.filter(inc => {
-          const status = (inc.status || 'New').toLowerCase().trim();
-          return status === 'new' || status === 'pending';
-        }).length;
-        
-        const incidentBadge = document.getElementById('incidentCount');
-        if (incidentBadge) {
-          incidentBadge.textContent = pendingCount;
+        const response = await fetch(API_URL);
+        if (response.ok) {
+          const data = await response.json();
+          if (!data.error && Array.isArray(data)) {
+            const pendingCount = data.filter(inc => {
+              const status = (inc.status || 'New').toLowerCase().trim();
+              return status === 'new' || status === 'pending';
+            }).length;
+            
+            const incidentBadge = document.getElementById('incidentCount');
+            if (incidentBadge) {
+              incidentBadge.textContent = pendingCount;
+            }
+          }
         }
       } catch (error) {
         console.error('Error updating sidebar counts:', error);
@@ -387,9 +407,14 @@
   }
 
   // Global functions for onclick handlers
-  window.viewReportImage = function(incidentId) {
+  window.viewReportImage = async function(incidentId) {
     try {
-      const incidents = loadIncidents();
+      const response = await fetch(API_URL);
+      if (!response.ok) throw new Error('Failed to fetch incidents');
+      const data = await response.json();
+      if (data.error) throw new Error(data.error);
+      
+      const incidents = Array.isArray(data) ? data : [];
       const incident = incidents.find(inc => inc.id === incidentId);
       if (incident && incident.photoDataUrl) {
         // Create and show modal
@@ -450,30 +475,31 @@
     }
   };
 
-  window.updateIncidentStatus = function(incidentId, newStatus) {
+  window.updateIncidentStatus = async function(incidentId, newStatus) {
     try {
-      const incidents = loadIncidents();
-      const incidentIndex = incidents.findIndex(inc => inc.id === incidentId);
-      
-      if (incidentIndex === -1) {
-        alert('Incident not found');
-        return;
-      }
-
       if (!confirm(`Change status to "${newStatus}"?`)) {
         return;
       }
 
-      incidents[incidentIndex].status = newStatus;
-      try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(incidents));
-      } catch (error) {
-        console.error('Error saving incidents:', error);
+      const response = await fetch(API_URL, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id: incidentId,
+          status: newStatus
+        })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
       }
       
       // Reload dashboard
-      loadPendingReports();
-      loadIncidentStats();
+      await loadPendingReports();
+      await loadIncidentStats();
 
       // Dispatch events to update other pages and sidebar counts
       window.dispatchEvent(new CustomEvent('incidentUpdated', { 

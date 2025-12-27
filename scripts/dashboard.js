@@ -44,8 +44,19 @@
   // Insert modal into the DOM
   document.body.insertAdjacentHTML("beforeend", modalHTML);
 
-  const STORAGE_KEY = "mdrrmo_incidents_v1";
-  const incidents = loadIncidents();
+  // Determine API URL based on current page location
+  const isSubdirectory = window.location.pathname.split('/').filter(p => p).length > 1;
+  const API_URL = isSubdirectory ? '../api/incidents.php' : 'api/incidents.php';
+  
+  let incidents = [];
+  
+  // Load incidents from database on initialization
+  (async function() {
+    incidents = await loadIncidents();
+    if (listEl) {
+      renderList();
+    }
+  })();
 
   let locationMap, locationMarker;
   let clockInterval = null;
@@ -292,17 +303,24 @@
     return dd;
   }
 
-  function loadIncidents() {
+  /**
+   * Load incidents from database API
+   */
+  async function loadIncidents() {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      return raw ? JSON.parse(raw) : [];
-    } catch (_) {
+      const response = await fetch(API_URL);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      if (data.error) {
+        throw new Error(data.error);
+      }
+      return Array.isArray(data) ? data : [];
+    } catch (error) {
+      console.error('Error loading incidents:', error);
       return [];
     }
-  }
-
-  function saveIncidents() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(incidents));
   }
 
   /**
@@ -349,8 +367,7 @@
       return result;
     } catch (error) {
       console.error('Error saving incident to database:', error);
-      // Don't throw - allow localStorage fallback
-      return null;
+      throw error;
     }
   }
 
@@ -576,25 +593,59 @@
     }
   }
 
-  function updateStatus(id, status) {
-    const inc = incidents.find((x) => x.id === id);
-    if (!inc) return;
-    inc.status = status;
-    saveIncidents();
-    renderList();
-    // Dispatch event to update sidebar counts
-    window.dispatchEvent(new CustomEvent("incidentAdded"));
+  async function updateStatus(id, status) {
+    try {
+      const response = await fetch(API_URL, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id: id,
+          status: status
+        })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+      }
+      
+      // Reload incidents from database
+      incidents = await loadIncidents();
+      renderList();
+      
+      // Dispatch event to update sidebar counts
+      window.dispatchEvent(new CustomEvent("incidentAdded"));
+    } catch (error) {
+      console.error('Error updating incident status:', error);
+      alert('Failed to update incident status: ' + error.message);
+    }
   }
 
-  function deleteIncident(id) {
-    const idx = incidents.findIndex((x) => x.id === id);
-    if (idx === -1) return;
+  async function deleteIncident(id) {
     if (!confirm("Delete this incident?")) return;
-    incidents.splice(idx, 1);
-    saveIncidents();
-    renderList();
-    // Dispatch event to update sidebar counts
-    window.dispatchEvent(new CustomEvent("incidentAdded"));
+    
+    try {
+      const response = await fetch(`${API_URL}?id=${encodeURIComponent(id)}`, {
+        method: 'DELETE'
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+      }
+      
+      // Reload incidents from database
+      incidents = await loadIncidents();
+      renderList();
+      
+      // Dispatch event to update sidebar counts
+      window.dispatchEvent(new CustomEvent("incidentAdded"));
+    } catch (error) {
+      console.error('Error deleting incident:', error);
+      alert('Failed to delete incident: ' + error.message);
+    }
   }
 
   function downloadPhoto(id) {
@@ -693,15 +744,14 @@
       try {
         const inc = await serializeFormToIncident();
         
-        // Save to database first
+        // Save to database
         const dbResult = await saveIncidentToDatabase(inc);
         if (dbResult && dbResult.id) {
           inc.id = dbResult.id; // Use database ID if provided
         }
         
-        // Also save to localStorage as backup
-        incidents.push(inc);
-        saveIncidents();
+        // Reload incidents from database to get the latest data
+        incidents = await loadIncidents();
         
         form.reset();
         if (photoPreview) photoPreview.classList.add("d-none");
@@ -901,17 +951,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
   // Update incident count in sidebar (delegated to sidebar-counts.js)
   // This function is kept for backward compatibility but will be overridden by sidebar-counts.js
-  function updateSidebarCounts() {
-    // Use the incidents array already loaded at the top of the script
-    // Reload from localStorage to ensure we have the latest data
-    let incidentsData;
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      incidentsData = raw ? JSON.parse(raw) : [];
-    } catch (error) {
-      console.error('Error loading incidents:', error);
-      incidentsData = incidents || []; // Fallback to the already loaded array
-    }
+  async function updateSidebarCounts() {
+    // Reload incidents from database to ensure we have the latest data
+    const incidentsData = await loadIncidents();
     
     const incidentCount = document.getElementById("incidentCount");
     const totalIncidents = document.getElementById("totalIncidents");

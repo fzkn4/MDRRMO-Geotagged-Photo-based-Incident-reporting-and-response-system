@@ -6,7 +6,7 @@
 (function() {
   'use strict';
 
-  const STORAGE_KEY = 'mdrrmo_activities_v1';
+  const API_URL = '../api/activities.php';
   
   // DOM Elements
   const btnRefresh = document.getElementById('btnRefresh');
@@ -165,38 +165,6 @@
     });
   }
 
-  /**
-   * Check available localStorage space (approximate)
-   */
-  function checkStorageSpace() {
-    try {
-      const testKey = '__storage_test__';
-      localStorage.setItem(testKey, 'test');
-      localStorage.removeItem(testKey);
-      return true;
-    } catch (e) {
-      return e instanceof DOMException && (
-        e.code === 22 || // QuotaExceededError
-        e.code === 1014 || // NS_ERROR_DOM_QUOTA_REACHED
-        e.name === 'QuotaExceededError' ||
-        e.name === 'NS_ERROR_DOM_QUOTA_REACHED'
-      );
-    }
-  }
-
-  /**
-   * Estimate storage size of activities data
-   */
-  function estimateStorageSize(activities) {
-    try {
-      const jsonString = JSON.stringify(activities);
-      // Each character in UTF-16 is 2 bytes, but base64 in JSON might be different
-      // This is a rough estimate
-      return new Blob([jsonString]).size;
-    } catch (error) {
-      return 0;
-    }
-  }
 
   /**
    * Add image preview to preview container
@@ -246,12 +214,19 @@
   }
 
   /**
-   * Load activities from localStorage
+   * Load activities from database API
    */
-  function loadActivities() {
+  async function loadActivities() {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      return raw ? JSON.parse(raw) : [];
+      const response = await fetch(API_URL);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      if (data.error) {
+        throw new Error(data.error);
+      }
+      return Array.isArray(data) ? data : [];
     } catch (error) {
       console.error('Error loading activities:', error);
       return [];
@@ -259,38 +234,35 @@
   }
 
   /**
-   * Save activities to localStorage
+   * Save activity to database API
    */
-  function saveActivities(activities) {
+  async function saveActivity(activity) {
     try {
-      const dataString = JSON.stringify(activities);
-      const estimatedSize = new Blob([dataString]).size;
-      const sizeInMB = (estimatedSize / (1024 * 1024)).toFixed(2);
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(activity)
+      });
       
-      // Warn if data is getting large (localStorage typically has ~5-10MB limit)
-      if (estimatedSize > 4 * 1024 * 1024) {
-        if (!confirm(`Warning: Activity data is getting large (${sizeInMB}MB). localStorage may reach its limit soon. Continue?`)) {
-          return false;
-        }
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
       }
       
-      localStorage.setItem(STORAGE_KEY, dataString);
-      return true;
+      const result = await response.json();
+      return result;
     } catch (error) {
-      console.error('Error saving activities:', error);
-      if (error.name === 'QuotaExceededError' || error.code === 22) {
-        alert('Storage limit reached! Please delete some older activities to free up space.');
-      } else {
-        alert('Error saving activity data: ' + error.message);
-      }
-      return false;
+      console.error('Error saving activity:', error);
+      throw error;
     }
   }
 
   /**
    * Handle add activity form submission
    */
-  function handleAddActivity(e) {
+  async function handleAddActivity(e) {
     e.preventDefault();
     
     const title = activityTitleInput.value.trim();
@@ -320,21 +292,28 @@
       createdAt: createdAt
     };
 
-    // Add to storage
-    const activities = loadActivities();
-    activities.unshift(newActivity); // Add to beginning (newest first)
-    
-    const saved = saveActivities(activities);
-    if (!saved) {
-      // Don't close modal if save failed
-      return;
-    }
+    // Show loading state
+    const submitBtn = addActivityForm.querySelector('button[type="submit"]');
+    if (submitBtn) {
+      const originalText = submitBtn.innerHTML;
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Saving...';
+      
+      try {
+        // Save to database
+        await saveActivity(newActivity);
 
-    // Close modal and refresh display
-    const bsModal = bootstrap.Modal.getInstance(addActivityModal);
-    if (bsModal) bsModal.hide();
-    
-    loadAndDisplayActivities();
+        // Close modal and refresh display
+        const bsModal = bootstrap.Modal.getInstance(addActivityModal);
+        if (bsModal) bsModal.hide();
+        
+        loadAndDisplayActivities();
+      } catch (error) {
+        alert('Failed to save activity: ' + error.message);
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+      }
+    }
   }
 
   /**
@@ -347,8 +326,8 @@
   /**
    * Render activities list
    */
-  function renderActivities() {
-    const activities = loadActivities();
+  async function renderActivities() {
+    const activities = await loadActivities();
     
     if (activities.length === 0) {
       activitiesList.style.display = 'none';
@@ -494,11 +473,17 @@
   /**
    * Load and display activities
    */
-  function loadAndDisplayActivities() {
-    activitiesLoading.style.display = 'block';
-    setTimeout(() => {
-      renderActivities();
-    }, 300);
+  async function loadAndDisplayActivities() {
+    if (activitiesLoading) activitiesLoading.style.display = 'block';
+    try {
+      await renderActivities();
+    } catch (error) {
+      console.error('Error loading activities:', error);
+      if (activitiesEmpty) activitiesEmpty.style.display = 'block';
+      if (activitiesList) activitiesList.style.display = 'none';
+    } finally {
+      if (activitiesLoading) activitiesLoading.style.display = 'none';
+    }
   }
 
 })();

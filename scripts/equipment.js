@@ -6,7 +6,7 @@
 (function() {
   'use strict';
 
-  const STORAGE_KEY = 'mdrrmo_equipment_v1';
+  const API_URL = '../api/equipment.php';
   
   // DOM Elements
   const btnRefresh = document.getElementById('btnRefresh');
@@ -93,12 +93,19 @@
   }
 
   /**
-   * Load equipment from localStorage
+   * Load equipment from database API
    */
-  function loadEquipment() {
+  async function loadEquipment() {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      return raw ? JSON.parse(raw) : [];
+      const response = await fetch(API_URL);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      if (data.error) {
+        throw new Error(data.error);
+      }
+      return Array.isArray(data) ? data : [];
     } catch (error) {
       console.error('Error loading equipment:', error);
       return [];
@@ -106,21 +113,61 @@
   }
 
   /**
-   * Save equipment to localStorage
+   * Save equipment to database API
    */
-  function saveEquipment(equipment) {
+  async function saveEquipment(equipment) {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(equipment));
+      const response = await fetch(API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(equipment)
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      return result;
     } catch (error) {
       console.error('Error saving equipment:', error);
-      alert('Error saving equipment data');
+      throw error;
+    }
+  }
+
+  /**
+   * Update equipment in database API
+   */
+  async function updateEquipment(equipment) {
+    try {
+      const response = await fetch(API_URL, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(equipment)
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      return result;
+    } catch (error) {
+      console.error('Error updating equipment:', error);
+      throw error;
     }
   }
 
   /**
    * Handle add equipment form submission
    */
-  function handleAddEquipment(e) {
+  async function handleAddEquipment(e) {
     e.preventDefault();
     
     const name = equipmentNameInput.value.trim();
@@ -147,42 +194,62 @@
       }
     }
 
-    // Check if equipment with same name already exists
-    const equipment = loadEquipment();
-    const existingIndex = equipment.findIndex(eq => eq.name.toLowerCase() === name.toLowerCase());
-    
-    if (existingIndex !== -1) {
-      if (!confirm(`Equipment "${equipment[existingIndex].name}" already exists. Update the count instead?`)) {
-        return;
-      }
-      // Update existing equipment count
-      equipment[existingIndex].count += count;
-      if (imageDataUrl) {
-        equipment[existingIndex].imageDataUrl = imageDataUrl;
-      }
-      equipment[existingIndex].updatedAt = Date.now();
-      saveEquipment(equipment);
-    } else {
-      // Create new equipment object
-      const newEquipment = {
-        id: generateId(),
-        name: name,
-        count: count,
-        imageDataUrl: imageDataUrl,
-        createdAt: Date.now(),
-        updatedAt: Date.now()
-      };
-
-      // Add to storage
-      equipment.push(newEquipment);
-      saveEquipment(equipment);
+    // Show loading state
+    const submitBtn = addEquipmentForm.querySelector('button[type="submit"]');
+    const originalText = submitBtn ? submitBtn.innerHTML : '';
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Saving...';
     }
 
-    // Close modal and refresh display
-    const bsModal = bootstrap.Modal.getInstance(addEquipmentModal);
-    if (bsModal) bsModal.hide();
-    
-    loadAndDisplayEquipment();
+    try {
+      // Check if equipment with same name already exists
+      const allEquipment = await loadEquipment();
+      const existing = allEquipment.find(eq => eq.name.toLowerCase() === name.toLowerCase());
+      
+      if (existing) {
+        if (!confirm(`Equipment "${existing.name}" already exists. Update the count instead?`)) {
+          if (submitBtn) {
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+          }
+          return;
+        }
+        // Update existing equipment count
+        const updatedEquipment = {
+          id: existing.id,
+          count: existing.count + count
+        };
+        if (imageDataUrl) {
+          updatedEquipment.imageDataUrl = imageDataUrl;
+        }
+        await updateEquipment(updatedEquipment);
+      } else {
+        // Create new equipment object
+        const newEquipment = {
+          id: generateId(),
+          name: name,
+          count: count,
+          imageDataUrl: imageDataUrl,
+          createdAt: Date.now()
+        };
+
+        // Save to database
+        await saveEquipment(newEquipment);
+      }
+
+      // Close modal and refresh display
+      const bsModal = bootstrap.Modal.getInstance(addEquipmentModal);
+      if (bsModal) bsModal.hide();
+      
+      await loadAndDisplayEquipment();
+    } catch (error) {
+      alert('Failed to save equipment: ' + error.message);
+      if (submitBtn) {
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+      }
+    }
   }
 
   /**
@@ -195,8 +262,8 @@
   /**
    * Render equipment grid
    */
-  function renderEquipment() {
-    const equipment = loadEquipment();
+  async function renderEquipment() {
+    const equipment = await loadEquipment();
     
     if (equipment.length === 0) {
       equipmentGrid.style.display = 'none';
@@ -284,11 +351,17 @@
   /**
    * Load and display equipment
    */
-  function loadAndDisplayEquipment() {
-    equipmentLoading.style.display = 'block';
-    setTimeout(() => {
-      renderEquipment();
-    }, 300);
+  async function loadAndDisplayEquipment() {
+    if (equipmentLoading) equipmentLoading.style.display = 'block';
+    try {
+      await renderEquipment();
+    } catch (error) {
+      console.error('Error loading equipment:', error);
+      if (equipmentEmpty) equipmentEmpty.style.display = 'block';
+      if (equipmentGrid) equipmentGrid.style.display = 'none';
+    } finally {
+      if (equipmentLoading) equipmentLoading.style.display = 'none';
+    }
   }
 
 })();

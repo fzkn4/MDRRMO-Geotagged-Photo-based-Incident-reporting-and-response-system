@@ -78,9 +78,8 @@
         : API_URL;
       
       let allIncidents = [];
-      const STORAGE_KEY = 'mdrrmo_incidents_v1';
       
-      // Try to fetch from database API first
+      // Fetch from database API
       try {
         const response = await fetch(url);
         
@@ -98,45 +97,8 @@
         allIncidents = Array.isArray(data) ? data : [];
         console.info(`Loaded ${allIncidents.length} incidents from database`);
       } catch (apiError) {
-        console.warn('Failed to fetch from database API:', apiError);
+        console.error('Failed to fetch from database API:', apiError);
         allIncidents = [];
-      }
-      
-      // Also load from localStorage and merge (for backward compatibility)
-      try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (raw) {
-          const localStorageIncidents = JSON.parse(raw);
-          
-          // Merge with database incidents, avoiding duplicates
-          const dbIds = new Set(allIncidents.map(inc => inc.id));
-          const newIncidents = localStorageIncidents.filter(inc => !dbIds.has(inc.id));
-          
-          if (newIncidents.length > 0) {
-            console.info(`Found ${newIncidents.length} additional incidents in localStorage`);
-            allIncidents = [...allIncidents, ...newIncidents];
-            
-            // Try to migrate these to database in the background (non-blocking)
-            migrateIncidentsToDatabase(newIncidents).catch(err => {
-              console.warn('Failed to migrate incidents to database:', err);
-            });
-          }
-        }
-      } catch (localStorageError) {
-        console.warn('Failed to load from localStorage:', localStorageError);
-      }
-      
-      // If no incidents found in database, try localStorage as fallback
-      if (allIncidents.length === 0) {
-        try {
-          const raw = localStorage.getItem(STORAGE_KEY);
-          if (raw) {
-            allIncidents = JSON.parse(raw);
-            console.info(`Loaded ${allIncidents.length} incidents from localStorage as fallback`);
-          }
-        } catch (localStorageError) {
-          console.error('Failed to load from localStorage:', localStorageError);
-        }
       }
       
       // Store incidents for quick access in modal functions
@@ -438,34 +400,6 @@
     }
   }
   
-  /**
-   * Migrate incidents from localStorage to database
-   */
-  async function migrateIncidentsToDatabase(incidents) {
-    if (!incidents || incidents.length === 0) return;
-    
-    const API_URL = '../api/incidents.php';
-    
-    for (const incident of incidents) {
-      try {
-        const response = await fetch(API_URL, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(incident)
-        });
-        
-        if (response.ok) {
-          console.info(`Migrated incident ${incident.id} to database`);
-        } else {
-          console.warn(`Failed to migrate incident ${incident.id}`);
-        }
-      } catch (error) {
-        console.warn(`Error migrating incident ${incident.id}:`, error);
-      }
-    }
-  }
   
   /**
    * Get incident by ID from cached data or fetch if needed

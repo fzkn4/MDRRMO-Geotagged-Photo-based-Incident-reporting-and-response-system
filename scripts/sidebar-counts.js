@@ -6,7 +6,6 @@
 (function() {
   'use strict';
 
-  const STORAGE_KEY = 'mdrrmo_incidents_v1';
   let initialized = false;
   
   // Determine API path based on current page location
@@ -32,20 +31,14 @@
     
     // Set up event listeners only once
     if (!window.sidebarCountsListenersSetup) {
-      // Listen for storage changes (when incidents are updated in another tab)
-      window.addEventListener('storage', function(e) {
-        if (e.key === STORAGE_KEY) {
-          updateSidebarCounts();
-        }
-      });
+      // Listen for custom events when incidents are added/updated
 
       // Listen for custom events when incidents are added/updated
       window.addEventListener('incidentAdded', function() {
-        // Small delay to ensure localStorage is updated
-        setTimeout(updateSidebarCounts, 50);
+        setTimeout(updateSidebarCounts, 100);
       });
       window.addEventListener('incidentUpdated', function() {
-        setTimeout(updateSidebarCounts, 50);
+        setTimeout(updateSidebarCounts, 100);
       });
       window.addEventListener('userUpdated', function() {
         setTimeout(updateUserCount, 50);
@@ -104,28 +97,6 @@
         console.warn('Failed to fetch incidents from API for sidebar count:', apiError);
       }
       
-      // If no incidents from database, try localStorage (filtered by user)
-      if (incidents.length === 0) {
-        try {
-          const raw = localStorage.getItem(STORAGE_KEY);
-          if (raw) {
-            const allIncidents = JSON.parse(raw);
-            console.debug(`Sidebar: Checking ${allIncidents.length} incidents in localStorage for user: ${currentUser}`);
-            // Filter by current user
-            incidents = allIncidents.filter(inc => {
-              // Match by reportedBy field
-              const matches = inc.reportedBy === currentUser;
-              if (!matches && inc.reportedBy) {
-                console.debug(`Sidebar: Incident ${inc.id} reportedBy "${inc.reportedBy}" doesn't match current user "${currentUser}"`);
-              }
-              return matches;
-            });
-            console.debug(`Sidebar: Found ${incidents.length} incidents in localStorage for user: ${currentUser}`);
-          }
-        } catch (localStorageError) {
-          console.warn('Failed to load incidents from localStorage:', localStorageError);
-        }
-      }
       
       // Count pending incidents (New or pending status)
       const pendingCount = incidents.filter(inc => {
@@ -225,18 +196,6 @@
       });
   }
 
-  /**
-   * Load incidents from localStorage
-   */
-  function loadIncidents() {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      return raw ? JSON.parse(raw) : [];
-    } catch (error) {
-      console.error('Error loading incidents:', error);
-      return [];
-    }
-  }
 
   // Mark that sidebar-counts.js is loaded
   window.sidebarCountsLoaded = true;

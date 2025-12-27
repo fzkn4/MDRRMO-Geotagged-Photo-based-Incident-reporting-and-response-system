@@ -39,7 +39,7 @@
   const incidentCountBadge = $("#incidentCountBadge");
 
   // Constants
-  const STORAGE_KEY = "mdrrmo_incidents_v1";
+  const API_URL = 'api/incidents.php';
   const ITEMS_PER_PAGE = 12;
 
   // State
@@ -51,18 +51,25 @@
   // Initialize
   init();
 
-  function init() {
-    loadIncidents();
+  async function init() {
+    await loadIncidents();
     setupEventListeners();
     setupSidebar();
     setupDropdown();
     renderIncidents();
   }
 
-  function loadIncidents() {
+  async function loadIncidents() {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      allIncidents = raw ? JSON.parse(raw) : [];
+      const response = await fetch(API_URL);
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      if (data.error) {
+        throw new Error(data.error);
+      }
+      allIncidents = Array.isArray(data) ? data : [];
       filteredIncidents = [...allIncidents];
     } catch (error) {
       console.error("Error loading incidents:", error);
@@ -622,7 +629,7 @@
     bulkActions.style.display = selectedIncidents.size > 0 ? "flex" : "none";
   }
 
-  function bulkAction(action) {
+  async function bulkAction(action) {
     if (selectedIncidents.size === 0) return;
 
     const actionText = action === "delete" ? "delete" : action;
@@ -634,50 +641,88 @@
       return;
     }
 
-    selectedIncidents.forEach((incidentId) => {
-      const incident = allIncidents.find((inc) => inc.id === incidentId);
-      if (incident) {
+    try {
+      const promises = Array.from(selectedIncidents).map(async (incidentId) => {
         switch (action) {
           case "dispatch":
-            incident.status = "Dispatched";
-            break;
+            return fetch(API_URL, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ id: incidentId, status: 'Dispatched' })
+            });
           case "resolve":
-            incident.status = "Resolved";
-            break;
+            return fetch(API_URL, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ id: incidentId, status: 'Resolved' })
+            });
           case "delete":
-            const index = allIncidents.findIndex(
-              (inc) => inc.id === incidentId
-            );
-            if (index > -1) allIncidents.splice(index, 1);
-            break;
+            return fetch(`${API_URL}?id=${encodeURIComponent(incidentId)}`, {
+              method: 'DELETE'
+            });
         }
-      }
-    });
+      });
 
-    saveIncidents();
-    selectedIncidents.clear();
-    bulkSelectMode.checked = false;
-    toggleBulkSelectMode();
-    applyFilters();
-  }
-
-  function updateStatus(id, status) {
-    const incident = allIncidents.find((inc) => inc.id === id);
-    if (incident) {
-      incident.status = status;
-      saveIncidents();
+      await Promise.all(promises);
+      
+      // Reload from database
+      await loadIncidents();
+      selectedIncidents.clear();
+      bulkSelectMode.checked = false;
+      toggleBulkSelectMode();
       applyFilters();
+    } catch (error) {
+      console.error('Error performing bulk action:', error);
+      alert('Failed to perform bulk action: ' + error.message);
     }
   }
 
-  function deleteIncident(id) {
+  async function updateStatus(id, status) {
+    try {
+      const response = await fetch(API_URL, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id: id,
+          status: status
+        })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+      }
+      
+      // Reload from database
+      await loadIncidents();
+      applyFilters();
+    } catch (error) {
+      console.error('Error updating incident status:', error);
+      alert('Failed to update incident status: ' + error.message);
+    }
+  }
+
+  async function deleteIncident(id) {
     if (!confirm("Are you sure you want to delete this incident?")) return;
 
-    const index = allIncidents.findIndex((inc) => inc.id === id);
-    if (index > -1) {
-      allIncidents.splice(index, 1);
-      saveIncidents();
+    try {
+      const response = await fetch(`${API_URL}?id=${encodeURIComponent(id)}`, {
+        method: 'DELETE'
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+      }
+      
+      // Reload from database
+      await loadIncidents();
       applyFilters();
+    } catch (error) {
+      console.error('Error deleting incident:', error);
+      alert('Failed to delete incident: ' + error.message);
     }
   }
 
@@ -733,8 +778,8 @@
     applyFilters();
   }
 
-  function refreshData() {
-    loadIncidents();
+  async function refreshData() {
+    await loadIncidents();
     applyFilters();
     updateSidebarCounts();
   }
@@ -752,23 +797,33 @@
     URL.revokeObjectURL(a.href);
   }
 
-  function clearAllIncidents() {
+  async function clearAllIncidents() {
     if (allIncidents.length === 0) return;
     if (
       !confirm(
-        "Are you sure you want to clear ALL incidents? This action cannot be undone."
+        "Are you sure you want to delete ALL incidents? This action cannot be undone."
       )
     )
       return;
 
-    allIncidents = [];
-    saveIncidents();
-    applyFilters();
-    updateSidebarCounts();
-  }
-
-  function saveIncidents() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(allIncidents));
+    try {
+      // Delete all incidents one by one via API
+      const deletePromises = allIncidents.map(inc => 
+        fetch(`${API_URL}?id=${encodeURIComponent(inc.id)}`, {
+          method: 'DELETE'
+        })
+      );
+      
+      await Promise.all(deletePromises);
+      
+      // Reload from database
+      await loadIncidents();
+      applyFilters();
+      updateSidebarCounts();
+    } catch (error) {
+      console.error('Error clearing incidents:', error);
+      alert('Failed to clear incidents: ' + error.message);
+    }
   }
 
   function updateStats() {
@@ -856,12 +911,7 @@
     };
   }
 
-  // Listen for storage changes (for real-time updates when incidents are added from dashboard)
-  window.addEventListener("storage", (e) => {
-    if (e.key === STORAGE_KEY) {
-      refreshData();
-    }
-  });
+  // Listen for custom events for real-time updates when incidents are added/updated
 
   // Listen for custom events from dashboard
   window.addEventListener("incidentAdded", () => {
