@@ -97,6 +97,40 @@ if (isset($_GET['logout'])) {
           </a>
         </div>
       </div>
+      
+      <!-- Sidebar Footer -->
+      <div class="sidebar-footer">
+        <div class="sidebar-footer-title">
+          <i class="bi bi-telephone-fill"></i>
+          <span>Contact Us</span>
+        </div>
+        
+        <a href="tel:+639123456789" class="sidebar-footer-item">
+          <i class="bi bi-telephone"></i>
+          <div class="sidebar-footer-item-text">
+            <div class="sidebar-footer-item-label">Hotline</div>
+            <div class="sidebar-footer-item-value">+63 912 345 6789</div>
+          </div>
+        </a>
+        
+        <a href="https://www.facebook.com/mdrrmo" target="_blank" rel="noopener noreferrer" class="sidebar-footer-item">
+          <i class="bi bi-facebook"></i>
+          <div class="sidebar-footer-item-text">
+            <div class="sidebar-footer-item-label">Follow Us</div>
+            <div class="sidebar-footer-item-value">Facebook</div>
+          </div>
+        </a>
+        
+        <div class="sidebar-footer-divider"></div>
+        
+        <div class="sidebar-footer-item" style="cursor: default; pointer-events: none;">
+          <i class="bi bi-info-circle"></i>
+          <div class="sidebar-footer-item-text">
+            <div class="sidebar-footer-item-label">Need Help?</div>
+            <div class="sidebar-footer-item-value">Contact Support</div>
+          </div>
+        </div>
+      </div>
     </div>
     
     <!-- Main Content -->
