@@ -105,13 +105,13 @@ if (isset($_GET['logout'])) {
           <span>Contact Us</span>
         </div>
         
-        <a href="tel:+639123456789" class="sidebar-footer-item">
-          <i class="bi bi-telephone"></i>
+        <button type="button" class="sidebar-footer-item" id="copyHotlineBtn" data-hotline="+639123456789">
+          <i class="bi bi-telephone" id="hotlineIcon"></i>
           <div class="sidebar-footer-item-text">
             <div class="sidebar-footer-item-label">Hotline</div>
-            <div class="sidebar-footer-item-value">+63 912 345 6789</div>
+            <div class="sidebar-footer-item-value" id="hotlineValue">+63 912 345 6789</div>
           </div>
-        </a>
+        </button>
         
         <a href="https://www.facebook.com/mdrrmo" target="_blank" rel="noopener noreferrer" class="sidebar-footer-item">
           <i class="bi bi-facebook"></i>
@@ -424,6 +424,62 @@ if (isset($_GET['logout'])) {
           if (!filled || !unfilled) return;
           icon.className = item.classList.contains('active') ? filled : unfilled;
         });
+        
+        // Copy hotline to clipboard
+        const copyHotlineBtn = document.getElementById('copyHotlineBtn');
+        if (copyHotlineBtn) {
+          copyHotlineBtn.addEventListener('click', function() {
+            const hotline = this.getAttribute('data-hotline');
+            const hotlineValue = document.getElementById('hotlineValue');
+            const hotlineIcon = document.getElementById('hotlineIcon');
+            
+            // Copy to clipboard
+            navigator.clipboard.writeText(hotline).then(function() {
+              // Visual feedback
+              const originalText = hotlineValue.textContent;
+              const originalIcon = hotlineIcon.className;
+              
+              hotlineValue.textContent = 'Copied!';
+              hotlineIcon.className = 'bi bi-check-circle-fill';
+              copyHotlineBtn.style.color = '#198754';
+              
+              setTimeout(function() {
+                hotlineValue.textContent = originalText;
+                hotlineIcon.className = originalIcon;
+                copyHotlineBtn.style.color = '';
+              }, 2000);
+            }).catch(function(err) {
+              console.error('Failed to copy: ', err);
+              // Fallback for older browsers
+              const textArea = document.createElement('textarea');
+              textArea.value = hotline;
+              textArea.style.position = 'fixed';
+              textArea.style.opacity = '0';
+              document.body.appendChild(textArea);
+              textArea.select();
+              try {
+                document.execCommand('copy');
+                const hotlineValue = document.getElementById('hotlineValue');
+                const hotlineIcon = document.getElementById('hotlineIcon');
+                const originalText = hotlineValue.textContent;
+                const originalIcon = hotlineIcon.className;
+                
+                hotlineValue.textContent = 'Copied!';
+                hotlineIcon.className = 'bi bi-check-circle-fill';
+                copyHotlineBtn.style.color = '#198754';
+                
+                setTimeout(function() {
+                  hotlineValue.textContent = originalText;
+                  hotlineIcon.className = originalIcon;
+                  copyHotlineBtn.style.color = '';
+                }, 2000);
+              } catch (err) {
+                console.error('Fallback copy failed: ', err);
+              }
+              document.body.removeChild(textArea);
+            });
+          });
+        }
       });
     </script>
   </body>
